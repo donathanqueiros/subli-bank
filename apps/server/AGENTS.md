@@ -18,16 +18,20 @@ Backend em Koa com GraphQL programático e persistência em MongoDB via Mongoose
 ```
 src/
 ├── modules/
-│   └── {domain}/                    # ex: accounts, transactions
+│   └── {domain}/                    # ex: accounts, transactions, notifications
 │       ├── {Domain}Model.ts         # Mongoose schema + model + tipo IAccount
 │       ├── {Domain}Type.ts          # GraphQLObjectType
-│       └── mutations/
-│           ├── {domain}Mutations.ts # Índice: exporta todas mutations do domínio
-│           └── {Action}{Domain}Mutation.ts  # Uma mutation por arquivo
+│       ├── mutations/
+│       │   ├── {domain}Mutations.ts # Índice: exporta todas mutations do domínio
+│       │   └── {Action}{Domain}Mutation.ts  # Uma mutation por arquivo
+│       └── subscriptions/
+│           ├── {domain}Subscriptions.ts     # Índice: exporta todas subscriptions do domínio
+│           └── {Event}Subscription.ts       # Uma subscription por arquivo
 ├── schema/
-│   ├── schema.ts        # GraphQLSchema principal
-│   ├── QueryType.ts     # Root Query
-│   └── MutationType.ts  # Root Mutation
+│   ├── schema.ts           # GraphQLSchema principal
+│   ├── QueryType.ts        # Root Query
+│   ├── MutationType.ts     # Root Mutation — spread de {domain}Mutations
+│   └── SubscriptionType.ts # Root Subscription — spread de {domain}Subscriptions
 └── database.ts
 ```
 
@@ -126,6 +130,58 @@ export const MutationType = new GraphQLObjectType({
 ```
 
 Use `fields: () => ({})` como thunk para evitar dependências circulares.
+
+### 5b. Adicionar uma Subscription — `src/modules/{domain}/subscriptions/{Event}Subscription.ts`
+
+```typescript
+import { GraphQLNonNull, GraphQLObjectType } from "graphql";
+import type { GraphQLContext } from "../../../types/auth";
+
+export const {Event}Subscription = {
+  type: new GraphQLNonNull({Event}Type),
+  args: {
+    // argumentos necessários
+  },
+  subscribe: async function* (
+    _source: unknown,
+    args: { /* tipos dos args */ },
+    context: GraphQLContext,
+  ) {
+    if (!context.auth) throw new Error("Usuario nao autenticado");
+    // lógica de autorização e filtragem
+    for await (const payload of someBus.subscribe()) {
+      yield payload;
+    }
+  },
+  resolve: (payload: unknown) => payload,
+};
+```
+
+Criar o índice `src/modules/{domain}/subscriptions/{domain}Subscriptions.ts`:
+
+```typescript
+import { {Event}Subscription } from "./{Event}Subscription";
+
+export const {domain}Subscriptions = {
+  {event}: {Event}Subscription,
+};
+```
+
+Registrar no Root — `src/schema/SubscriptionType.ts`:
+
+```typescript
+import { GraphQLObjectType } from "graphql";
+import { notificationSubscriptions } from "../modules/notifications/subscriptions/notificationSubscriptions";
+
+export const SubscriptionType = new GraphQLObjectType({
+  name: "Subscription",
+  fields: () => ({
+    ...notificationSubscriptions,
+  }),
+});
+```
+
+O padrão é idêntico ao de mutations: um arquivo por subscription → índice do domínio → spread no root.
 
 ### 6. Registrar queries no Root — `src/schema/QueryType.ts`
 
