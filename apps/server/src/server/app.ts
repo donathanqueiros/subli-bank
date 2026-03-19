@@ -10,6 +10,48 @@ import type { GraphQLContext } from "../types/auth";
 
 const app = new Koa();
 
+function getApolloSandboxHtml(endpoint: string): string {
+	return `<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Apollo Sandbox</title>
+		<style>
+			html, body, #embeddableSandbox {
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="embeddableSandbox"></div>
+		<script src="https://embeddable-sandbox.cdn.apollographql.com/_latest/embeddable-sandbox.umd.production.min.js"></script>
+		<script>
+			const options = {
+				target: "#embeddableSandbox",
+				initialEndpoint: "${endpoint}",
+			};
+
+			if (typeof window.EmbeddedSandbox === "function") {
+				new window.EmbeddedSandbox(options);
+			} else if (
+				window.EmbeddedSandbox &&
+				typeof window.EmbeddedSandbox.renderEmbeddedSandbox === "function"
+			) {
+				window.EmbeddedSandbox.renderEmbeddedSandbox(options);
+			} else {
+				document.getElementById("embeddableSandbox").innerText =
+					"Unable to load Apollo Sandbox.";
+			}
+		</script>
+	</body>
+</html>`;
+}
+
 app.keys = [config.SESSION_SECRET];
 
 export async function getAuthContextFromSessionToken(
@@ -41,6 +83,18 @@ app.use(
 	}),
 );
 app.use(logger());
+
+app.use(async (ctx, next) => {
+	if (ctx.path === "/graphql" && ctx.method === "GET" && ctx.accepts("html")) {
+		const endpoint = `${ctx.protocol}://${ctx.host}/graphql`;
+		ctx.status = 200;
+		ctx.type = "text/html";
+		ctx.body = getApolloSandboxHtml(endpoint);
+		return;
+	}
+
+	await next();
+});
 
 app.use(
 	mount(

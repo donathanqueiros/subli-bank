@@ -63,4 +63,20 @@ describe("server app", () => {
 		});
 		expect(findValidSessionMock).not.toHaveBeenCalled();
 	});
+
+	it("serves Apollo Sandbox when opening GET /graphql in the browser", async () => {
+		const response = await fetch(`${baseUrl}/graphql`, {
+			method: "GET",
+			headers: {
+				accept: "text/html",
+			},
+		});
+
+		const responseText = await response.text();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("content-type")).toContain("text/html");
+		expect(responseText).toContain("Apollo Sandbox");
+		expect(responseText).toContain("new window.EmbeddedSandbox");
+	});
 });
