@@ -145,6 +145,7 @@ export const TransferMutation = {
     transferNotificationBus.publishTransferReceived({
       transactionId: String(persistedTransaction.id),
       fromAccountId,
+      fromAccountHolderName: fromAccount.holderName,
       toAccountId,
       amount,
       ...(description ? { description } : {}),

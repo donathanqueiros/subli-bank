@@ -73,6 +73,7 @@ type Subscription {
 type TransferReceived {
   transactionId: ID!
   fromAccountId: ID!
+  fromAccountHolderName: String!
   toAccountId: ID!
   amount: Float!
   description: String

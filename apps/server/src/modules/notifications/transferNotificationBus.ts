@@ -3,6 +3,7 @@ import { EventEmitter, on } from "node:events";
 export type TransferReceivedNotification = {
   transactionId: string;
   fromAccountId: string;
+  fromAccountHolderName: string;
   toAccountId: string;
   amount: number;
   description?: string;

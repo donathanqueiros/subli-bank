@@ -14,6 +14,7 @@ const TransferReceivedType = new GraphQLObjectType({
   fields: {
     transactionId: { type: new GraphQLNonNull(GraphQLID) },
     fromAccountId: { type: new GraphQLNonNull(GraphQLID) },
+    fromAccountHolderName: { type: new GraphQLNonNull(GraphQLString) },
     toAccountId: { type: new GraphQLNonNull(GraphQLID) },
     amount: { type: new GraphQLNonNull(GraphQLFloat) },
     description: { type: GraphQLString },

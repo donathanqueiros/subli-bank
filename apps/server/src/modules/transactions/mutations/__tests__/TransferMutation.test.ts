@@ -109,6 +109,7 @@ describe("Transfer mutation", () => {
       id: "account-1",
       balance: 500,
       userId: "user-1",
+      holderName: "Lucas",
     });
     const toAccount = createAccountDocument({
       id: "account-2",
@@ -194,6 +195,7 @@ describe("Transfer mutation", () => {
     ).toHaveBeenCalledWith({
       transactionId: "transaction-1",
       fromAccountId: "account-1",
+      fromAccountHolderName: "Lucas",
       toAccountId: "account-2",
       amount: 120,
       description: "Pagamento",

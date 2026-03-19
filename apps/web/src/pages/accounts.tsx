@@ -51,6 +51,7 @@ const transferReceivedSubscription = graphql`
     transferReceived(accountId: $accountId) {
       transactionId
       fromAccountId
+      fromAccountHolderName
       toAccountId
       amount
       description
@@ -301,11 +302,14 @@ export default function AccountsPage() {
             return;
           }
 
-          toast.success(`Voce recebeu ${formatBalance(payload.amount)}`, {
+          toast.success(
+            `Voce recebeu ${formatBalance(payload.amount)} de ${payload.fromAccountHolderName}`,
+            {
             description: payload.description
               ? payload.description
               : `Transferencia em ${formatDateTime(payload.createdAt)}`,
-          });
+            },
+          );
 
           void loadDashboardData();
         },
