@@ -50,6 +50,8 @@ export const SignUpMutation = {
       throw new Error("Email ja cadastrado");
     }
 
+    const passwordHash = await hashPassword(password);
+
     let createdUserId: string | null = null;
     let createdUserRole: "USER" | "ADMIN" | null = null;
     let createdAccountId: string | null = null;
@@ -61,7 +63,7 @@ export const SignUpMutation = {
 
         const createdUser = new User({
           email: normalizedEmail,
-          passwordHash: hashPassword(password),
+          passwordHash,
           role: getInitialRole(normalizedEmail),
           active: true,
         });

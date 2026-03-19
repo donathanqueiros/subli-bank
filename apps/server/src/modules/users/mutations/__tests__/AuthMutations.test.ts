@@ -346,7 +346,7 @@ describe("Auth mutations", () => {
     UserModel.findOne.mockResolvedValue({
       id: "user-1",
       email: "ana@woovi.com",
-      passwordHash: hashPassword("StrongPass123"),
+      passwordHash: await hashPassword("StrongPass123"),
       role: "USER",
       active: true,
     });

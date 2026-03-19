@@ -20,7 +20,7 @@ export const LoginMutation = {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
 
-    if (!user || !verifyPassword(password, user.passwordHash)) {
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
       throw new Error("Credenciais invalidas");
     }
 
