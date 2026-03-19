@@ -12,7 +12,7 @@ export const TransferMutation = {
     description: { type: GraphQLString },
   },
   resolve: async (
-    _,
+    _source: unknown,
     {
       fromAccountId,
       toAccountId,

@@ -7,7 +7,7 @@ export const CreateAccountMutation = {
   args: {
     holderName: { type: new GraphQLNonNull(GraphQLString) },
   },
-  resolve: async (_, { holderName }: { holderName: string }) => {
+  resolve: async (_source: unknown, { holderName }: { holderName: string }) => {
     const account = new Account({ holderName });
     await account.save();
     return account;
