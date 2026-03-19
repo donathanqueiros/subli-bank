@@ -32,25 +32,23 @@ export const AddCreditMutation = {
       throw new Error("Valor deve ser maior que zero");
     }
 
+    const account = await Account.findById(accountId);
+
+    if (!account) {
+      throw new Error("Conta nao encontrada");
+    }
+
+    if (!account.active) {
+      throw new Error("Credito administrativo permitido apenas para conta ativa");
+    }
+
     const existingRequest = await IdempotencyRequest.findOne({
       accountId,
       idempotencyKey,
     });
 
     if (existingRequest) {
-      const account = await Account.findById(accountId);
-
-      if (!account) {
-        throw new Error("Conta nao encontrada");
-      }
-
       return account;
-    }
-
-    const account = await Account.findById(accountId);
-
-    if (!account) {
-      throw new Error("Conta nao encontrada");
     }
 
     const adminSourceAccount = await Account.findOne({

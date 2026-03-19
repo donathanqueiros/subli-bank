@@ -5,6 +5,8 @@ export type IAccount = {
   holderName: string;
   balance: number;
   active: boolean;
+  deletedAt?: Date;
+  deletedByUserId?: Types.ObjectId;
   createdAt: Date;
 };
 
@@ -13,6 +15,8 @@ const accountSchema = new Schema<IAccount>({
   holderName: { type: String, required: true },
   balance: { type: Number, default: 0 },
   active: { type: Boolean, default: true },
+  deletedAt: { type: Date },
+  deletedByUserId: { type: Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -70,6 +70,14 @@ const TransferNotificationBus = transferNotificationBus as unknown as {
 };
 
 describe("AddCredit mutation", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("registra credito administrativo como entrada e notifica igual transferencia", async () => {
     const adminAccount = createAccountDocument({
       id: "account-admin-1",
@@ -168,5 +176,78 @@ describe("AddCredit mutation", () => {
         balance: 150,
       },
     });
+  });
+
+  it("falha quando a conta de destino esta inativa", async () => {
+    const inactiveAccount = createAccountDocument({
+      id: "account-inactive-1",
+      userId: "user-inactive-1",
+      holderName: "Conta Inativa",
+      active: false,
+    });
+    const adminAccount = createAccountDocument({
+      id: "account-admin-1",
+      userId: "admin-user-1",
+      holderName: "Administrador",
+    });
+
+    IdempotencyRequestModel.findOne.mockResolvedValue(null);
+    AccountModel.findById.mockResolvedValue(inactiveAccount);
+    AccountModel.findOne.mockResolvedValue(adminAccount);
+    const transaction = createTransactionDocument({
+      id: "transaction-inactive-1",
+      fromAccountId: "account-admin-1",
+      toAccountId: "account-inactive-1",
+      amount: 150,
+      idempotencyKey: "idem-admin-credit-inactive",
+      description: "Credito administrativo",
+    });
+    TransactionModel.mockImplementation(() => transaction);
+
+    const ledgerEntryDoc = {
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    LedgerEntryModel.mockImplementation(() => ledgerEntryDoc);
+
+    const idempotencyRequestDoc = {
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    (IdempotencyRequest as unknown as jest.Mock).mockImplementation(
+      () => idempotencyRequestDoc,
+    );
+    jest.spyOn(mongoose, "startSession").mockResolvedValue({
+      withTransaction: async (callback: () => Promise<void>) => {
+        await callback();
+      },
+      endSession: jest.fn(),
+    } as never);
+
+    const result = await executeGraphQL(
+      `
+      mutation {
+        AddCredit(
+          accountId: "account-inactive-1"
+          amount: 150
+          idempotencyKey: "idem-admin-credit-inactive"
+        ) {
+          id
+        }
+      }
+    `,
+      {
+        auth: {
+          userId: "admin-user-1",
+          role: "ADMIN",
+        },
+      },
+    );
+
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.[0]?.message).toContain(
+      "Credito administrativo permitido apenas para conta ativa",
+    );
+    expect(TransactionModel).not.toHaveBeenCalled();
+    expect(LedgerEntryModel).not.toHaveBeenCalled();
+    expect(TransferNotificationBus.publishTransferReceived).not.toHaveBeenCalled();
   });
 });
