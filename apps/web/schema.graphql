@@ -1,0 +1,27 @@
+type Query {
+  account(id: ID!): Account
+  accounts: [Account!]!
+  transaction(id: ID!): Transaction
+  transactions: [Transaction!]!
+}
+
+type Account {
+  id: ID!
+  holderName: String!
+  balance: Float!
+  createdAt: String!
+}
+
+type Transaction {
+  id: ID!
+  fromAccount: Account!
+  toAccount: Account!
+  amount: Float!
+  description: String
+  createdAt: String!
+}
+
+type Mutation {
+  CreateAccount(holderName: String!): Account!
+  Transfer(fromAccountId: String!, toAccountId: String!, amount: Float!, description: String): Transaction!
+}

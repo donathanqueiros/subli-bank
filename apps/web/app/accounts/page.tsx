@@ -1,44 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Search, User, DollarSign, Calendar, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { fetchQuery, graphql, useRelayEnvironment } from "react-relay";
+import type { pageAccountsQuery } from "./__generated__/pageAccountsQuery.graphql";
 
-const GRAPHQL_URL = "http://localhost:4000/graphql";
+const accountsPageQuery = graphql`
+  query pageAccountsQuery {
+    accounts {
+      id
+      holderName
+      balance
+      createdAt
+    }
+  }
+`;
 
-type Account = {
-  id: string;
-  holderName: string;
-  balance: number;
-  createdAt: string;
-};
-
-async function fetchAccounts(): Promise<Account[]> {
-  const res = await fetch(GRAPHQL_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: `
-        query {
-          accounts {
-            id
-            holderName
-            balance
-            createdAt
-          }
-        }
-      `,
-    }),
-  });
-
-  if (!res.ok) throw new Error("Falha ao conectar com o servidor");
-
-  const json = await res.json();
-  if (json.errors) throw new Error(json.errors[0].message);
-
-  return json.data.accounts as Account[];
-}
+type Account = NonNullable<pageAccountsQuery["response"]["accounts"]>[number];
 
 function formatBalance(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -58,21 +38,38 @@ function formatDate(isoString: string) {
 }
 
 export default function AccountsPage() {
+  const relayEnvironment = useRelayEnvironment();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadAccounts = useCallback(async () => {
     setLoading(true);
     setError(null);
-    fetchAccounts()
-      .then(setAccounts)
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Erro desconhecido");
-      })
-      .finally(() => setLoading(false));
-  }, []);
+
+    try {
+      const data = await fetchQuery<pageAccountsQuery>(
+        relayEnvironment,
+        accountsPageQuery,
+        {},
+      ).toPromise();
+
+      if (!data) {
+        throw new Error("Resposta vazia do servidor");
+      }
+
+      setAccounts([...data.accounts]);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro desconhecido");
+    } finally {
+      setLoading(false);
+    }
+  }, [relayEnvironment]);
+
+  useEffect(() => {
+    void loadAccounts();
+  }, [loadAccounts]);
 
   const filtered = accounts.filter((acc) =>
     acc.holderName.toLowerCase().includes(search.toLowerCase())
@@ -176,22 +173,7 @@ export default function AccountsPage() {
         {/* Refresh button */}
         {!loading && !error && (
           <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setLoading(true);
-                setError(null);
-                fetchAccounts()
-                  .then(setAccounts)
-                  .catch((err: unknown) => {
-                    setError(
-                      err instanceof Error ? err.message : "Erro desconhecido"
-                    );
-                  })
-                  .finally(() => setLoading(false));
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => void loadAccounts()}>
               Atualizar
             </Button>
           </div>
