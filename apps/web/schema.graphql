@@ -1,8 +1,22 @@
 type Query {
+  me: Me
   account(id: ID!): Account
   accounts: [Account!]!
   transaction(id: ID!): Transaction
   transactions: [Transaction!]!
+}
+
+type Me {
+  id: ID!
+  email: String!
+  role: QueryUserRole!
+  active: Boolean!
+  accountId: ID
+}
+
+enum QueryUserRole {
+  USER
+  ADMIN
 }
 
 type Account {
@@ -17,11 +31,35 @@ type Transaction {
   fromAccount: Account!
   toAccount: Account!
   amount: Float!
+  idempotencyKey: String!
   description: String
   createdAt: String!
 }
 
 type Mutation {
+  AddCredit(accountId: String!, amount: Float!, idempotencyKey: String!): Account!
   CreateAccount(holderName: String!): Account!
-  Transfer(fromAccountId: String!, toAccountId: String!, amount: Float!, description: String): Transaction!
+  DeleteUser(userId: String!): Boolean!
+  Transfer(fromAccountId: String!, toAccountId: String!, amount: Float!, idempotencyKey: String!, description: String): Transaction!
+  Login(email: String!, password: String!): AuthPayload!
+  Logout: Boolean!
+  SignUp(email: String!, password: String!): AuthPayload!
+}
+
+type AuthPayload {
+  user: User!
+  account: Account!
+}
+
+type User {
+  id: ID!
+  email: String!
+  role: UserRole!
+  active: Boolean!
+  createdAt: String!
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }

@@ -1,122 +1,68 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "./assets/vite.svg";
-import heroImg from "./assets/hero.png";
-import "./App.css";
-import { Button } from "./components/ui/button";
+import { useNavigate } from "react-router";
+import { useAuth } from "@/lib/use-auth";
+import { Button } from "@/components/ui/button";
 
-function App() {
-  const [count, setCount] = useState(0);
+export default function App() {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+    <main className="min-h-screen bg-[linear-gradient(160deg,#fef3c7_0%,#ffffff_45%,#dbeafe_100%)] px-4 py-12 text-slate-900">
+      <section className="mx-auto flex max-w-5xl flex-col gap-10 rounded-3xl border border-amber-200/80 bg-white/80 p-8 shadow-2xl backdrop-blur sm:p-12">
+        <header className="space-y-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-amber-700">
+            Woovi Bank
           </p>
+          <h1 className="max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl">
+            Transfira, receba e administre credito com rastreabilidade.
+          </h1>
+          <p className="max-w-2xl text-base text-slate-600 sm:text-lg">
+            Autenticacao por usuario, regras por papel e operacoes financeiras com
+            idempotencia e ledger.
+          </p>
+        </header>
+
+        <div className="flex flex-wrap gap-3">
+          {isAuthenticated ? (
+            <>
+              <Button onClick={() => navigate("/accounts")}>Abrir painel</Button>
+              <Button variant="outline" onClick={() => navigate("/auth")}>
+                Trocar conta
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={() => navigate("/auth")}>Entrar</Button>
+              <Button variant="outline" onClick={() => navigate("/auth")}>
+                Criar conta
+              </Button>
+            </>
+          )}
         </div>
-        <Button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </Button>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <article className="rounded-2xl border border-slate-200 bg-white p-4">
+            <h2 className="text-sm font-semibold">Usuario</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Transferencia entre contas ativas com botao de acao direto no
+              painel.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-4">
+            <h2 className="text-sm font-semibold">Admin</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Adiciona credito e exclui usuario conforme permissao de
+              administrador.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-4">
+            <h2 className="text-sm font-semibold">Sessao</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Usuario atual: {user ? `${user.email} (${user.role})` : "nao autenticado"}.
+            </p>
+          </article>
+        </section>
       </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    </main>
   );
 }
-
-export default App;

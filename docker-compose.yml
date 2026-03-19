@@ -1,18 +1,57 @@
-version: '3.8'
-
 services:
   mongodb:
-    image: mongo
+    image: mongo:7
     container_name: mongodb
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
     ports:
       - "27017:27017"
     environment:
       - MONGO_INITDB_DATABASE=bank
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "echo 'db.adminCommand({ ping: 1 }).ok' | mongosh --quiet mongodb://127.0.0.1:27017/admin | grep 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    volumes:
+      - mongodb_data:/data/db
     restart: always
 
+  mongodb-rs-init:
+    image: mongo:7
+    container_name: mongodb-rs-init
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: "no"
+    entrypoint:
+      - bash
+      - -lc
+      - |
+        echo "Waiting for MongoDB replica set init..."
+        mongosh --quiet mongodb://mongodb:27017/admin --eval '
+          try {
+            rs.status();
+            print("Replica set already initialized");
+          } catch (error) {
+            rs.initiate({
+              _id: "rs0",
+              members: [{ _id: 0, host: "localhost:27017" }]
+            });
+            print("Replica set initialized");
+          }
+        '
+
   redis:
-    image: redis
+    image: redis:7
     container_name: redis
     ports:
       - "6379:6379"
     restart: always
+
+volumes:
+  mongodb_data:

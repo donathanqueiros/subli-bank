@@ -2,6 +2,7 @@ jest.mock("../../modules/accounts/AccountModel", () => {
   const Account = Object.assign(jest.fn(), {
     find: jest.fn(),
     findById: jest.fn(),
+    findOne: jest.fn(),
   });
 
   return { Account };
@@ -16,19 +17,46 @@ jest.mock("../../modules/transactions/TransactionModel", () => {
   return { Transaction };
 });
 
+jest.mock("../../modules/ledger/LedgerEntryModel", () => {
+  const LedgerEntry = {
+    aggregate: jest.fn(),
+  };
+
+  return { LedgerEntry };
+});
+
+jest.mock("../../modules/users/UserModel", () => {
+  const User = Object.assign(jest.fn(), {
+    findById: jest.fn(),
+  });
+
+  return { User };
+});
+
 import { createAccountDocument } from "../../__tests__/factories/createAccountDocument";
 import { createTransactionDocument } from "../../__tests__/factories/createTransactionDocument";
 import { executeGraphQL } from "../../__tests__/helpers/executeGraphQL";
 import { Account } from "../../modules/accounts/AccountModel";
+import { LedgerEntry } from "../../modules/ledger/LedgerEntryModel";
 import { Transaction } from "../../modules/transactions/TransactionModel";
+import { User } from "../../modules/users/UserModel";
 
 const AccountModel = Account as unknown as jest.Mock & {
   find: jest.Mock;
   findById: jest.Mock;
+  findOne: jest.Mock;
 };
 
 const TransactionModel = Transaction as unknown as jest.Mock & {
   find: jest.Mock;
+  findById: jest.Mock;
+};
+
+const LedgerEntryModel = LedgerEntry as unknown as {
+  aggregate: jest.Mock;
+};
+
+const UserModel = User as unknown as jest.Mock & {
   findById: jest.Mock;
 };
 
@@ -38,6 +66,9 @@ describe("QueryType", () => {
       createAccountDocument({ id: "account-1", holderName: "Joao" }),
       createAccountDocument({ id: "account-2", holderName: "Maria" }),
     ]);
+    LedgerEntryModel.aggregate
+      .mockResolvedValueOnce([{ balance: 130 }])
+      .mockResolvedValueOnce([{ balance: 40 }]);
 
     const result = await executeGraphQL(`
       query {
@@ -51,11 +82,56 @@ describe("QueryType", () => {
 
     expect(result.errors).toBeUndefined();
     expect(AccountModel.find).toHaveBeenCalledTimes(1);
+    expect(LedgerEntryModel.aggregate).toHaveBeenCalledTimes(2);
     expect(result.data).toEqual({
       accounts: [
-        { id: "account-1", holderName: "Joao", balance: 0 },
-        { id: "account-2", holderName: "Maria", balance: 0 },
+        { id: "account-1", holderName: "Joao", balance: 130 },
+        { id: "account-2", holderName: "Maria", balance: 40 },
       ],
+    });
+  });
+
+  it("retorna me com accountId quando autenticado", async () => {
+    UserModel.findById.mockResolvedValue({
+      id: "user-1",
+      email: "ana@woovi.com",
+      role: "USER",
+      active: true,
+    });
+    AccountModel.findOne.mockResolvedValue({
+      id: "account-1",
+      userId: "user-1",
+    });
+
+    const result = await executeGraphQL(
+      `
+        query {
+          me {
+            id
+            email
+            role
+            active
+            accountId
+          }
+        }
+      `,
+      {
+        auth: {
+          userId: "user-1",
+          role: "USER",
+        },
+      },
+    );
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data).toEqual({
+      me: {
+        id: "user-1",
+        email: "ana@woovi.com",
+        role: "USER",
+        active: true,
+        accountId: "account-1",
+      },
     });
   });
 

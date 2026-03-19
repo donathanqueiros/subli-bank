@@ -20,6 +20,7 @@ const fetchGraphQL: FetchFunction = async (request, variables) => {
       variables,
     }),
     cache: "no-store",
+    credentials: "include",
   });
 
   if (!response.ok) {

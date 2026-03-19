@@ -23,6 +23,7 @@ export const TransactionType = new GraphQLObjectType({
         Account.findById(transaction.toAccountId),
     },
     amount: { type: new GraphQLNonNull(GraphQLFloat) },
+    idempotencyKey: { type: new GraphQLNonNull(GraphQLString) },
     description: { type: GraphQLString },
     createdAt: { type: new GraphQLNonNull(GraphQLString) },
   }),

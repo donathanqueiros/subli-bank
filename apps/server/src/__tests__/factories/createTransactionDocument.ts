@@ -3,6 +3,7 @@ type TransactionDocumentOverrides = Partial<{
   fromAccountId: string;
   toAccountId: string;
   amount: number;
+  idempotencyKey: string;
   description?: string;
   createdAt: Date;
   save: jest.Mock;
@@ -16,6 +17,7 @@ export function createTransactionDocument(
     fromAccountId: "account-1",
     toAccountId: "account-2",
     amount: 100,
+    idempotencyKey: "idem-default",
     description: "Transferencia teste",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     save: jest.fn().mockResolvedValue(undefined),

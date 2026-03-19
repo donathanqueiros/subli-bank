@@ -1,0 +1,227 @@
+# AGENTS.md — apps/server
+
+## Escopo
+
+Backend em Koa com GraphQL programático e persistência em MongoDB via Mongoose.
+
+- App raiz: `apps/server`
+- Código principal: `src/`
+- Testes: `src/__tests__/`
+- Scripts locais: `pnpm dev`, `pnpm build`, `pnpm test`
+
+---
+
+## Criação de Schema GraphQL
+
+### Estrutura de Pastas
+
+```
+src/
+├── modules/
+│   └── {domain}/                    # ex: accounts, transactions
+│       ├── {Domain}Model.ts         # Mongoose schema + model + tipo IAccount
+│       ├── {Domain}Type.ts          # GraphQLObjectType
+│       └── mutations/
+│           ├── {domain}Mutations.ts # Índice: exporta todas mutations do domínio
+│           └── {Action}{Domain}Mutation.ts  # Uma mutation por arquivo
+├── schema/
+│   ├── schema.ts        # GraphQLSchema principal
+│   ├── QueryType.ts     # Root Query
+│   └── MutationType.ts  # Root Mutation
+└── database.ts
+```
+
+### Convenções Obrigatórias
+
+| Item | Padrão |
+|------|--------|
+| Arquivos de módulo | PascalCase (`AccountType.ts`, `CreateAccountMutation.ts`) |
+| Índice de mutations | camelCase plural (`accountMutations`) dentro de `{domain}Mutations.ts` |
+| Nomes de mutation no schema | PascalCase (`CreateAccount`, `Transfer`) |
+| Nomes de query no schema | camelCase (`account`, `accounts`) |
+| Campos obrigatórios | Sempre `new GraphQLNonNull(...)` |
+| Listas não-nulas | `new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(ItemType)))` |
+| Resolvers com DB | Sempre `async/await` com Mongoose |
+
+---
+
+## Passo a Passo: Adicionar Novo Módulo
+
+### 1. Criar o Mongoose Model — `src/modules/{domain}/{Domain}Model.ts`
+
+```typescript
+import { model, Schema } from "mongoose";
+
+export type I{Domain} = {
+  createdAt: Date;
+};
+
+const {domain}Schema = new Schema<I{Domain}>({
+  createdAt: { type: Date, default: Date.now },
+});
+
+export const {Domain} = model("{Domain}", {domain}Schema);
+```
+
+### 2. Criar o GraphQL Type — `src/modules/{domain}/{Domain}Type.ts`
+
+```typescript
+import { GraphQLNonNull, GraphQLObjectType, GraphQLID, GraphQLString } from "graphql";
+
+export const {Domain}Type = new GraphQLObjectType({
+  name: "{Domain}",
+  fields: {
+    id: { type: new GraphQLNonNull(GraphQLID) },
+    createdAt: { type: new GraphQLNonNull(GraphQLString) },
+  },
+});
+```
+
+Tipos GraphQL disponíveis: `GraphQLString`, `GraphQLFloat`, `GraphQLInt`, `GraphQLBoolean`, `GraphQLID`
+
+### 3. Criar cada Mutation individualmente — `src/modules/{domain}/mutations/{Action}{Domain}Mutation.ts`
+
+```typescript
+import { GraphQLNonNull, GraphQLString } from "graphql";
+import { {Domain}Type } from "../{Domain}Type";
+import { {Domain} } from "../{Domain}Model";
+
+export const {Action}{Domain}Mutation = {
+  type: new GraphQLNonNull({Domain}Type),
+  args: {
+    // argumentos obrigatórios com GraphQLNonNull
+  },
+  resolve: async (_, args: { /* tipos dos args */ }) => {
+    const doc = new {Domain}({ ...args });
+    await doc.save();
+    return doc;
+  },
+};
+```
+
+### 4. Criar índice de mutations — `src/modules/{domain}/mutations/{domain}Mutations.ts`
+
+```typescript
+import { {Action}{Domain}Mutation } from "./{Action}{Domain}Mutation";
+
+export const {domain}Mutations = {
+  {Action}{Domain}: {Action}{Domain}Mutation,
+};
+```
+
+### 5. Registrar mutations no Root — `src/schema/MutationType.ts`
+
+```typescript
+import { GraphQLObjectType } from "graphql";
+import { accountMutations } from "../modules/accounts/mutations/accountMutationts";
+import { {domain}Mutations } from "../modules/{domain}/mutations/{domain}Mutations";
+
+export const MutationType = new GraphQLObjectType({
+  name: "Mutation",
+  fields: () => ({
+    ...accountMutations,
+    ...{domain}Mutations,
+  }),
+});
+```
+
+Use `fields: () => ({})` como thunk para evitar dependências circulares.
+
+### 6. Registrar queries no Root — `src/schema/QueryType.ts`
+
+```typescript
+import { {Domain}Type } from "../modules/{domain}/{Domain}Type";
+import { {Domain} } from "../modules/{domain}/{Domain}Model";
+
+{domain}: {
+  type: {Domain}Type,
+  args: {
+    id: { type: new GraphQLNonNull(GraphQLID) },
+  },
+  resolve: async (_, { id }: { id: string }) => {
+    return await {Domain}.findById(id);
+  },
+},
+
+{domain}s: {
+  type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull({Domain}Type))),
+  resolve: async () => {
+    return await {Domain}.find();
+  },
+},
+```
+
+---
+
+## Regras de Validação nos Resolvers
+
+Sempre nesta ordem dentro do `resolve`:
+
+1. Validar valores dos argumentos (`amount > 0`, strings não-vazias, etc.)
+2. Buscar documentos no banco e verificar existência
+3. Verificar regras de negócio (saldo suficiente, conta ativa, etc.)
+4. Executar a operação (`save`, `update`)
+5. Retornar o documento
+
+```typescript
+if (amount <= 0) throw new Error("Valor deve ser maior que zero");
+
+const account = await Account.findById(id);
+if (!account) throw new Error("Conta não encontrada");
+```
+
+---
+
+## Fluxo de TDD Recomendado
+
+Use TDD quando a mudança alterar regra de negócio, contrato GraphQL, fluxo de erro ou integração entre resolver e model. Para mudanças puramente mecânicas, renomeações ou refactors sem alteração comportamental, comece pelo refactor pequeno e cubra o comportamento crítico se ainda não existir teste.
+
+### Ordem recomendada
+
+1. Criar ou ajustar o teste do domínio afetado primeiro
+2. Rodar apenas a suíte alvo e confirmar falha
+3. Implementar a menor mudança possível no resolver ou schema
+4. Rodar a suíte alvo novamente
+5. Refatorar mantendo o teste verde
+6. Só então rodar a suíte completa
+
+### Onde colocar os testes
+
+```text
+src/
+├── __tests__/
+│   ├── helpers/         # helpers de execução GraphQL e utilitários comuns
+│   ├── factories/       # criação de documentos fake reutilizáveis
+│   └── setup/           # setup global do Jest
+├── modules/
+│   └── {domain}/
+│       └── mutations/
+│           └── __tests__/ # testes da mutation do domínio
+└── schema/
+  └── __tests__/       # testes de wiring do root query/mutation
+```
+
+### Critério prático
+
+- Teste em `modules/.../__tests__` quando quiser validar comportamento do domínio
+- Teste em `schema/__tests__` quando quiser validar nome de campo GraphQL e wiring no root
+- Prefira mocks dos models para unit tests do schema/resolver
+- Não deixe testes genéricos de exemplo; cada teste deve proteger um comportamento real do backend
+
+### Comandos úteis
+
+- `pnpm test:ci`: execução determinística local/CI
+- `pnpm test:watch`: loop de TDD
+- `pnpm test:coverage`: validar lacunas antes de fechar uma mudança
+
+Evite erros genéricos como `throw new Error("Erro")`.
+
+---
+
+## O que Não Fazer
+
+- Não usar SDL (`buildSchema` ou template strings GraphQL); use apenas a API programática.
+- Não colocar lógica de negócio no `schema.ts`; ela pertence aos resolvers dos módulos.
+- Não misturar mutations de domínios diferentes no mesmo arquivo.
+- Não usar `fields: {}` quando houver referências circulares; use thunk.
+- Não omitir `GraphQLNonNull` em campos que nunca são nulos no banco.
