@@ -4,6 +4,7 @@ import { AccountType } from "../AccountType";
 import { runWithOptionalTransaction } from "../../../database/runWithOptionalTransaction";
 import { IdempotencyRequest } from "../../idempotency/IdempotencyRequestModel";
 import { LedgerEntry } from "../../ledger/LedgerEntryModel";
+import { transferNotificationBus } from "../../notifications/transferNotificationBus";
 import { Transaction } from "../../transactions/TransactionModel";
 import type { GraphQLContext } from "../../../types/auth";
 
@@ -52,11 +53,21 @@ export const AddCreditMutation = {
       throw new Error("Conta nao encontrada");
     }
 
+    const adminSourceAccount = await Account.findOne({
+      userId: context.auth.userId,
+    });
+
+    if (!adminSourceAccount) {
+      throw new Error("Conta do administrador nao encontrada");
+    }
+
+    let transfer: InstanceType<typeof Transaction> | null = null;
+
     await runWithOptionalTransaction(async (dbSession) => {
       const sessionOptions = dbSession ? { session: dbSession } : null;
 
-        const transfer = new Transaction({
-          fromAccountId: accountId,
+        transfer = new Transaction({
+          fromAccountId: String(adminSourceAccount.id),
           toAccountId: accountId,
           amount,
           idempotencyKey,
@@ -91,6 +102,25 @@ export const AddCreditMutation = {
           await idempotencyRequest.save();
         }
       });
+
+    if (!transfer) {
+      throw new Error("Falha ao criar credito administrativo");
+    }
+
+    const persistedTransfer = transfer as {
+      id: string;
+      createdAt: Date | string;
+    };
+
+    transferNotificationBus.publishTransferReceived({
+      transactionId: String(persistedTransfer.id),
+      fromAccountId: String(adminSourceAccount.id),
+      fromAccountHolderName: adminSourceAccount.holderName,
+      toAccountId: accountId,
+      amount,
+      description: "Credito administrativo",
+      createdAt: new Date(persistedTransfer.createdAt).toISOString(),
+    });
 
     return account;
   },
