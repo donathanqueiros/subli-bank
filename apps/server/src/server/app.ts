@@ -178,6 +178,7 @@ app.use(
 				});
 
 				const authContext = await getAuthContextFromSessionToken(sessionToken);
+				
 				const requestContext = {
 					setSessionCookie: (token: string, expiresAt: Date) => {
 						cookies.set(config.SESSION_COOKIE_NAME, token, {
