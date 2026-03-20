@@ -1,4 +1,5 @@
 import "../i18n/index";
+import { AccountNotifications } from "@/components/account-notifications";
 import { relayEnvironment } from "@/lib/relay/environment";
 import { AuthProvider } from "@/lib/auth";
 import type { ReactNode } from "react";
@@ -17,6 +18,7 @@ export function Providers({ children }: ProvidersProps) {
       <AuthProvider>
         <RelayEnvironmentProvider environment={relayEnvironment}>
           <TooltipProvider>
+            <AccountNotifications />
             {children}
             <Toaster richColors position="top-right" />
           </TooltipProvider>

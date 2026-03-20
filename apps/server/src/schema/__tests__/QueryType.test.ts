@@ -30,6 +30,7 @@ jest.mock("../../modules/ledger/LedgerEntryModel", () => {
 jest.mock("../../modules/users/UserModel", () => {
   const User = Object.assign(jest.fn(), {
     findById: jest.fn(),
+    find: jest.fn(),
   });
 
   return { User };
@@ -85,6 +86,7 @@ const LedgerEntryModel = LedgerEntry as unknown as {
 
 const UserModel = User as unknown as jest.Mock & {
   findById: jest.Mock;
+  find: jest.Mock;
 };
 
 const DepositRequestModel = DepositRequest as unknown as {
@@ -215,6 +217,87 @@ describe("QueryType", () => {
         accountId: "account-1",
       },
     });
+  });
+
+  it("lists users for admin ordered by email", async () => {
+    UserModel.find.mockResolvedValue([
+      {
+        id: "user-1",
+        email: "ana@woovi.com",
+        role: "USER",
+        active: true,
+      },
+      {
+        id: "user-2",
+        email: "bruno@woovi.com",
+        role: "ADMIN",
+        active: true,
+      },
+    ]);
+
+    const result = await executeGraphQL(
+      `
+        query {
+          users {
+            id
+            email
+            role
+            active
+          }
+        }
+      `,
+      {
+        auth: {
+          userId: "admin-1",
+          role: "ADMIN",
+        },
+      },
+    );
+
+    expect(result.errors).toBeUndefined();
+    expect(UserModel.find).toHaveBeenCalledWith(
+      {},
+      null,
+      { sort: { email: 1 } },
+    );
+    expect(result.data).toEqual({
+      users: [
+        {
+          id: "user-1",
+          email: "ana@woovi.com",
+          role: "USER",
+          active: true,
+        },
+        {
+          id: "user-2",
+          email: "bruno@woovi.com",
+          role: "ADMIN",
+          active: true,
+        },
+      ],
+    });
+  });
+
+  it("blocks users query for non-admins", async () => {
+    const result = await executeGraphQL(
+      `
+        query {
+          users {
+            id
+          }
+        }
+      `,
+      {
+        auth: {
+          userId: "user-1",
+          role: "USER",
+        },
+      },
+    );
+
+    expect(result.errors).toBeDefined();
+    expect(result.errors?.[0]?.message).toContain("Acesso restrito a administradores");
+    expect(UserModel.find).not.toHaveBeenCalled();
   });
 
   it("fetches a transaction by id", async () => {

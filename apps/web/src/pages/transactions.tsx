@@ -5,16 +5,13 @@ import {
   Loader2,
   TrendingUp,
 } from "lucide-react";
-import { requestSubscription, useRelayEnvironment } from "react-relay";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ACCOUNT_TRANSFER_RECEIVED_EVENT } from "@/lib/account-notification-events";
 import { cn } from "@/lib/utils";
 import { formatBalance, formatDateTime } from "@/lib/formatters";
 import { graphqlRequest } from "@/lib/graphqlClient";
 import { useAuth } from "@/lib/use-auth";
-import subscriptionNode from "./__generated__/accountsTransferReceivedSubscription.graphql";
-import type { accountsTransferReceivedSubscription } from "./__generated__/accountsTransferReceivedSubscription.graphql";
 
 const PAGE_SIZE = 10;
 
@@ -48,7 +45,6 @@ type Transaction = {
 };
 
 export default function TransactionsPage() {
-  const relayEnvironment = useRelayEnvironment();
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [page, setPage] = useState(1);
@@ -82,32 +78,20 @@ export default function TransactionsPage() {
   }, [loadTransactions]);
 
   useEffect(() => {
-    if (!user?.accountId) return;
+    if (typeof window === "undefined" || !user?.accountId) {
+      return;
+    }
 
-    const subscription = requestSubscription<accountsTransferReceivedSubscription>(
-      relayEnvironment,
-      {
-        subscription: subscriptionNode,
-        variables: { accountId: user.accountId },
-        onNext: (data) => {
-          const payload = data?.transferReceived;
-          if (!payload) return;
+    const handleTransferReceived = () => {
+      void loadTransactions();
+    };
 
-          toast.success(
-            `Voce recebeu ${formatBalance(payload.amount)} de ${payload.fromAccountHolderName}`,
-            {
-              description: payload.description
-                ? payload.description
-                : `Transferencia em ${formatDateTime(payload.createdAt)}`,
-            },
-          );
-          void loadTransactions();
-        },
-      },
-    );
+    window.addEventListener(ACCOUNT_TRANSFER_RECEIVED_EVENT, handleTransferReceived);
 
-    return () => subscription.dispose();
-  }, [loadTransactions, relayEnvironment, user?.accountId]);
+    return () => {
+      window.removeEventListener(ACCOUNT_TRANSFER_RECEIVED_EVENT, handleTransferReceived);
+    };
+  }, [loadTransactions, user?.accountId]);
 
   const sortedTransactions = useMemo(
     () =>

@@ -18,6 +18,7 @@ import { DepositRequest } from "../modules/deposits/DepositRequestModel";
 import { TransactionType } from "../modules/transactions/TransactionType";
 import { Transaction } from "../modules/transactions/TransactionModel";
 import { User } from "../modules/users/UserModel";
+import { UserType } from "../modules/users/UserType";
 import { Kyc } from "../modules/kyc/KycModel";
 import { KycType, KycStatusEnum } from "../modules/kyc/KycType";
 import type { GraphQLContext } from "../types/auth";
@@ -88,6 +89,23 @@ export const QueryType = new GraphQLObjectType({
         }
 
         return await User.findById(context.auth.userId);
+      },
+    },
+
+    users: {
+      type: new GraphQLNonNull(new GraphQLList(new GraphQLNonNull(UserType))),
+      resolve: async (
+        _source: unknown,
+        _args: unknown,
+        context: GraphQLContext,
+      ) => {
+        if (context.auth?.role !== "ADMIN") {
+          throw new Error("Acesso restrito a administradores");
+        }
+
+        return await User.find({}, null, {
+          sort: { email: 1 },
+        });
       },
     },
 

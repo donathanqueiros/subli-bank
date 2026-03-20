@@ -18,10 +18,13 @@ import {
 import {
   fetchQuery,
   graphql,
-  requestSubscription,
   useRelayEnvironment,
 } from "react-relay";
 import { toast } from "sonner";
+import {
+  ACCOUNT_DEPOSIT_CONFIRMED_EVENT,
+  ACCOUNT_TRANSFER_RECEIVED_EVENT,
+} from "@/lib/account-notification-events";
 import { Button } from "@/components/ui/button";
 import {
   DashboardSidebar,
@@ -30,8 +33,6 @@ import {
 import { cn } from "@/lib/utils";
 import { graphqlRequest } from "@/lib/graphqlClient";
 import { useAuth } from "@/lib/use-auth";
-import type { accountsDepositConfirmedSubscription } from "./__generated__/accountsDepositConfirmedSubscription.graphql";
-import type { accountsTransferReceivedSubscription } from "./__generated__/accountsTransferReceivedSubscription.graphql";
 import type { accountsQuery } from "./__generated__/accountsQuery.graphql";
 
 const PAGE_SIZE = 10;
@@ -44,33 +45,6 @@ const accountsPageQuery = graphql`
       holderName
       balance
       createdAt
-    }
-  }
-`;
-
-const transferReceivedSubscription = graphql`
-  subscription accountsTransferReceivedSubscription($accountId: ID!) {
-    transferReceived(accountId: $accountId) {
-      transactionId
-      fromAccountId
-      fromAccountHolderName
-      toAccountId
-      amount
-      description
-      createdAt
-    }
-  }
-`;
-
-const depositConfirmedSubscription = graphql`
-  subscription accountsDepositConfirmedSubscription($accountId: ID!) {
-    depositConfirmed(accountId: $accountId) {
-      depositId
-      accountId
-      correlationID
-      amount
-      createdAt
-      completedAt
     }
   }
 `;
@@ -115,6 +89,12 @@ type Deposit = {
 type DepositsPayload = {
   myDepositsCount: number;
   myDeposits: Deposit[];
+};
+
+type ManagedUser = {
+  id: string;
+  email: string;
+  active: boolean;
 };
 
 const TRANSACTIONS_QUERY = `
@@ -201,6 +181,16 @@ const ADD_CREDIT_MUTATION = `
   }
 `;
 
+const USERS_QUERY = `
+  query AdminUsers {
+    users {
+      id
+      email
+      active
+    }
+  }
+`;
+
 const DELETE_USER_MUTATION = `
   mutation DeleteUser($userId: String!) {
     DeleteUser(userId: $userId)
@@ -283,6 +273,7 @@ export default function AccountsPage() {
   const [adminFeedback, setAdminFeedback] = useState<string | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState("");
+  const [users, setUsers] = useState<ManagedUser[]>([]);
   const [activeItemId, setActiveItemId] = useState("contas");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -297,6 +288,10 @@ export default function AccountsPage() {
         .slice()
         .sort((a, b) => parseDateValue(b.createdAt) - parseDateValue(a.createdAt))[0] ?? null,
     [deposits],
+  );
+  const selectedDeleteUser = useMemo(
+    () => users.find((item) => item.id === deleteUserId) ?? null,
+    [deleteUserId, users],
   );
 
   const sidebarItems = useMemo<SidebarItem[]>(() => {
@@ -366,6 +361,10 @@ export default function AccountsPage() {
           status: undefined,
         }),
       ]);
+      const usersData =
+        user?.role === "ADMIN"
+          ? await graphqlRequest<{ users: ManagedUser[] }>(USERS_QUERY, {})
+          : { users: [] };
 
       if (!accountsData) {
         throw new Error("Resposta vazia do servidor");
@@ -378,6 +377,7 @@ export default function AccountsPage() {
       setAccounts(nextAccounts);
       setTransactions(nextTransactions);
       setDeposits(nextDeposits);
+      setUsers(usersData.users ?? []);
       setAccountsTotalCount(accountsData.accountsCount ?? 0);
       setTransactionsTotalCount(transactionsData.transactionsCount ?? 0);
       setDepositsTotalCount(depositsData.myDepositsCount ?? 0);
@@ -386,85 +386,29 @@ export default function AccountsPage() {
     } finally {
       setLoading(false);
     }
-  }, [accountsPage, relayEnvironment, transactionsPage, user?.accountId]);
+  }, [accountsPage, relayEnvironment, transactionsPage, user?.accountId, user?.role]);
 
   useEffect(() => {
     void loadDashboardData();
   }, [loadDashboardData]);
 
   useEffect(() => {
-    if (!user?.accountId) {
+    if (typeof window === "undefined" || !user?.accountId) {
       return;
     }
 
-    const subscription = requestSubscription<accountsTransferReceivedSubscription>(
-      relayEnvironment,
-      {
-        subscription: transferReceivedSubscription,
-        variables: {
-          accountId: user.accountId,
-        },
-        onNext: (data) => {
-          const payload = data?.transferReceived;
+    const handleRealtimeUpdate = () => {
+      void loadDashboardData();
+    };
 
-          if (!payload) {
-            return;
-          }
-
-          toast.success(
-            `Voce recebeu ${formatBalance(payload.amount)} de ${payload.fromAccountHolderName}`,
-            {
-            description: payload.description
-              ? payload.description
-              : `Transferencia em ${formatDateTime(payload.createdAt)}`,
-            },
-          );
-
-          void loadDashboardData();
-        },
-      },
-    );
+    window.addEventListener(ACCOUNT_TRANSFER_RECEIVED_EVENT, handleRealtimeUpdate);
+    window.addEventListener(ACCOUNT_DEPOSIT_CONFIRMED_EVENT, handleRealtimeUpdate);
 
     return () => {
-      subscription.dispose();
+      window.removeEventListener(ACCOUNT_TRANSFER_RECEIVED_EVENT, handleRealtimeUpdate);
+      window.removeEventListener(ACCOUNT_DEPOSIT_CONFIRMED_EVENT, handleRealtimeUpdate);
     };
-  }, [loadDashboardData, relayEnvironment, user?.accountId]);
-
-  useEffect(() => {
-    if (!user?.accountId) {
-      return;
-    }
-
-    const subscription = requestSubscription<accountsDepositConfirmedSubscription>(
-      relayEnvironment,
-      {
-        subscription: depositConfirmedSubscription,
-        variables: {
-          accountId: user.accountId,
-        },
-        onNext: (data) => {
-          const payload = data?.depositConfirmed;
-
-          if (!payload) {
-            return;
-          }
-
-          toast.success(
-            `Deposito confirmado: ${formatBalance(payload.amount)}`,
-            {
-              description: `Confirmado em ${formatDateTime(payload.completedAt)}`,
-            },
-          );
-
-          void loadDashboardData();
-        },
-      },
-    );
-
-    return () => {
-      subscription.dispose();
-    };
-  }, [loadDashboardData, relayEnvironment, user?.accountId]);
+  }, [loadDashboardData, user?.accountId]);
 
   useEffect(() => {
     setAccountsPage(1);
@@ -629,7 +573,16 @@ export default function AccountsPage() {
 
   async function handleDeleteUser() {
     if (!deleteUserId) {
-      setAdminFeedback("Informe o ID do usuario para excluir.");
+      setAdminFeedback("Selecione o usuario que deseja excluir.");
+      return;
+    }
+
+    if (!selectedDeleteUser) {
+      setAdminFeedback("Usuario selecionado nao encontrado.");
+      return;
+    }
+
+    if (!window.confirm(`Confirma a exclusao do usuario ${selectedDeleteUser.email}?`)) {
       return;
     }
 
@@ -908,13 +861,19 @@ export default function AccountsPage() {
 
               <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                 <label className="text-sm">
-                  ID do usuario para excluir
-                  <input
+                  Usuario para excluir
+                  <select
                     className="mt-1 w-full rounded-lg border border-rose-300 bg-white px-3 py-2"
                     value={deleteUserId}
                     onChange={(event) => setDeleteUserId(event.target.value)}
-                    placeholder="user id"
-                  />
+                  >
+                    <option value="">Selecione um usuario</option>
+                    {users.map((managedUser) => (
+                      <option key={managedUser.id} value={managedUser.id}>
+                        {managedUser.email}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <div className="self-end">
                   <Button
@@ -925,6 +884,16 @@ export default function AccountsPage() {
                     Excluir usuario
                   </Button>
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-rose-200 bg-white/80 px-3 py-3 text-sm text-slate-700">
+                {selectedDeleteUser ? (
+                  <p>
+                    E-mail selecionado: <strong>{selectedDeleteUser.email}</strong>
+                  </p>
+                ) : (
+                  <p className="text-slate-500">Selecione um usuario para confirmar a exclusao.</p>
+                )}
               </div>
 
               {adminFeedback ? <p className="text-sm">{adminFeedback}</p> : null}
