@@ -119,5 +119,97 @@
     "confirm": "Confirm",
     "save": "Save",
     "close": "Close"
+  },
+  "settings": {
+    "badge": "Settings",
+    "title": "App appearance",
+    "description": "Choose a global palette for the whole experience. The change affects header, sidebar, forms, lists, and the main dashboard areas.",
+    "currentTheme": "Current theme:",
+    "active": "Active",
+    "themeMode": {
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "language": {
+      "title": "Interface language",
+      "description": "Choose how the experience should appear in flows that already support translation, such as identity verification.",
+      "current": "Current language:",
+      "selectTitle": "Choose language",
+      "selectDescription": "This preference is saved in this browser and applies immediately.",
+      "label": "Language",
+      "ariaLabel": "Select interface language",
+      "optionsTitle": "Available options"
+    },
+    "appearance": {
+      "title": "Brightness mode",
+      "description": "Switch quickly between light and dark while preserving each palette's identity on darker surfaces too.",
+      "useLight": "Use light",
+      "useDark": "Use dark",
+      "lightDescription": "Lighter, brighter, and more institutional.",
+      "darkDescription": "More focused, with dark tones adapted to each palette."
+    },
+    "palette": {
+      "primary": "Actions, focus, and emphasis.",
+      "secondary": "Visual support and softer surfaces.",
+      "neutral": "Structural background and long-form reading.",
+      "scope": "Whole application",
+      "selected": "Selected",
+      "usePalette": "Use palette"
+    }
+  },
+  "dashboard": {
+    "nav": {
+      "accounts": "Accounts",
+      "transactions": "History",
+      "profile": "Profile",
+      "settings": "Settings",
+      "admin": "Administration"
+    },
+    "pages": {
+      "accounts": {
+        "title": "Accounts",
+        "description": "Browse, search, and read the account ecosystem."
+      },
+      "transactions": {
+        "title": "History",
+        "description": "Movement overview with quick reading of incoming and outgoing entries."
+      },
+      "transfer": {
+        "title": "Transfers",
+        "description": "Primary action to send values between accounts."
+      },
+      "profile": {
+        "title": "Profile",
+        "description": "Session, verification, and account security."
+      },
+      "admin": {
+        "title": "Administration",
+        "description": "Sensitive controls and restricted operations."
+      },
+      "settings": {
+        "title": "Settings",
+        "description": "Visual preferences and experience adjustments."
+      },
+      "defaultDescription": "Application operational dashboard."
+    },
+    "roles": {
+      "admin": "Administrator",
+      "operation": "Operations"
+    },
+    "sections": {
+      "navigation": "Navigation",
+      "admin": "Admin"
+    },
+    "language": {
+      "title": "Language",
+      "label": "Interface language",
+      "ariaLabel": "Select interface language"
+    },
+    "actions": {
+      "logout": "Sign out",
+      "enableLight": "Enable light theme",
+      "enableDark": "Enable dark theme",
+      "transfer": "Make transfer"
+    }
   }
 }

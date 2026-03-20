@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import {
   ArrowRightLeft,
+  Globe2,
   Landmark,
   MoonStar,
   Settings,
@@ -8,6 +9,7 @@ import {
   SunMedium,
   User,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/use-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +30,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { graphqlRequest } from "@/lib/graphqlClient";
 import { useTheme } from "@/lib/use-theme";
 
@@ -37,72 +41,56 @@ const LOGOUT_MUTATION = `
   }
 `;
 
-const NAV_ITEMS = [
-  {
-    path: "/accounts",
-    label: "Contas",
-    icon: Landmark,
-  },
-  {
-    path: "/transactions",
-    label: "Historico",
-    icon: ArrowRightLeft,
-  },
-  {
-    path: "/profile",
-    label: "Perfil",
-    icon: User,
-  },
-  {
-    path: "/settings",
-    label: "Configuracoes",
-    icon: Settings,
-  },
-];
-
-const ADMIN_ITEMS = [
-  {
-    path: "/admin",
-    label: "Administracao",
-    icon: ShieldCheck,
-  },
-];
-
-const PAGE_TITLES: Record<string, { title: string; description: string }> = {
-  "/accounts": {
-    title: "Contas",
-    description: "Consulta, busca e leitura do ecossistema de contas.",
-  },
-  "/transactions": {
-    title: "Historico",
-    description: "Visao de movimentacoes com leitura rapida de entradas e saidas.",
-  },
-  "/transfer": {
-    title: "Transferencias",
-    description: "Acao primaria para enviar valores entre contas.",
-  },
-  "/profile": {
-    title: "Perfil",
-    description: "Sessao, verificacao e seguranca da conta.",
-  },
-  "/admin": {
-    title: "Administracao",
-    description: "Controles sensiveis e operacoes restritas.",
-  },
-  "/settings": {
-    title: "Configuracoes",
-    description: "Preferencias visuais e ajustes de experiencia.",
-  },
-};
+const LANGUAGE_OPTIONS = [
+  { value: "pt-BR", label: "Português (Brasil)" },
+  { value: "en", label: "English" },
+] as const;
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
   const { mode, toggleMode } = useTheme();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const pageMeta = PAGE_TITLES[location.pathname] ?? {
+  const currentLanguage = LANGUAGE_OPTIONS.find(
+    (option) => option.value === (i18n.resolvedLanguage ?? i18n.language),
+  );
+  const navItems = [
+    { path: "/accounts", label: t("dashboard.nav.accounts"), icon: Landmark },
+    { path: "/transactions", label: t("dashboard.nav.transactions"), icon: ArrowRightLeft },
+    { path: "/profile", label: t("dashboard.nav.profile"), icon: User },
+    { path: "/settings", label: t("dashboard.nav.settings"), icon: Settings },
+  ];
+  const adminItems = [{ path: "/admin", label: t("dashboard.nav.admin"), icon: ShieldCheck }];
+  const pageTitles: Record<string, { title: string; description: string }> = {
+    "/accounts": {
+      title: t("dashboard.pages.accounts.title"),
+      description: t("dashboard.pages.accounts.description"),
+    },
+    "/transactions": {
+      title: t("dashboard.pages.transactions.title"),
+      description: t("dashboard.pages.transactions.description"),
+    },
+    "/transfer": {
+      title: t("dashboard.pages.transfer.title"),
+      description: t("dashboard.pages.transfer.description"),
+    },
+    "/profile": {
+      title: t("dashboard.pages.profile.title"),
+      description: t("dashboard.pages.profile.description"),
+    },
+    "/admin": {
+      title: t("dashboard.pages.admin.title"),
+      description: t("dashboard.pages.admin.description"),
+    },
+    "/settings": {
+      title: t("dashboard.pages.settings.title"),
+      description: t("dashboard.pages.settings.description"),
+    },
+  };
+  const pageMeta = pageTitles[location.pathname] ?? {
     title: "Woovi Bank",
-    description: "Painel operacional da aplicacao.",
+    description: t("dashboard.pages.defaultDescription"),
   };
 
   async function handleLogout() {
@@ -128,7 +116,7 @@ export function DashboardLayout() {
             </p>
             <div className="mt-3 flex items-center gap-2">
               <Badge variant="secondary" className="rounded-full px-3 py-1">
-                {user?.role === "ADMIN" ? "Administrador" : "Operacao"}
+                {user?.role === "ADMIN" ? t("dashboard.roles.admin") : t("dashboard.roles.operation")}
               </Badge>
             </div>
           </div>
@@ -136,10 +124,10 @@ export function DashboardLayout() {
 
         <SidebarContent className="px-2">
           <SidebarGroup>
-            <SidebarGroupLabel>Navegacao</SidebarGroupLabel>
+            <SidebarGroupLabel>{t("dashboard.sections.navigation")}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-1.5">
-                {NAV_ITEMS.map((item) => (
+                {navItems.map((item) => (
                   <SidebarMenuItem key={item.path}>
                     <NavLink to={item.path}>
                       {({ isActive }) => (
@@ -160,10 +148,10 @@ export function DashboardLayout() {
 
           {user?.role === "ADMIN" && (
             <SidebarGroup>
-              <SidebarGroupLabel>Admin</SidebarGroupLabel>
+              <SidebarGroupLabel>{t("dashboard.sections.admin")}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1.5">
-                  {ADMIN_ITEMS.map((item) => (
+                  {adminItems.map((item) => (
                     <SidebarMenuItem key={item.path}>
                       <NavLink to={item.path}>
                         {({ isActive }) => (
@@ -185,9 +173,35 @@ export function DashboardLayout() {
         </SidebarContent>
 
         <SidebarFooter className="px-3 pb-4">
+          <div className="mb-3 rounded-[18px] border border-sidebar-border/80 bg-card/70 p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              <Globe2 className="size-3.5" />
+              <span>{t("dashboard.language.title")}</span>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sidebar-language" className="text-xs text-foreground/80">
+                {t("dashboard.language.label")}
+              </Label>
+              <Select
+                id="sidebar-language"
+                className="h-9 bg-background"
+                value={currentLanguage?.value ?? "pt-BR"}
+                onChange={(event) => {
+                  void i18n.changeLanguage(event.target.value);
+                }}
+                aria-label={t("dashboard.language.ariaLabel")}
+              >
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
           <Button variant="outline" className="w-full justify-start" onClick={() => void handleLogout()}>
             <User className="mr-2 size-4" />
-            Sair
+            {t("dashboard.actions.logout")}
           </Button>
         </SidebarFooter>
 
@@ -210,13 +224,17 @@ export function DashboardLayout() {
             variant="outline"
             size="icon-sm"
             className="ml-auto"
-            aria-label={mode === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
+            aria-label={
+              mode === "dark"
+                ? t("dashboard.actions.enableLight")
+                : t("dashboard.actions.enableDark")
+            }
             onClick={toggleMode}
           >
             {mode === "dark" ? <SunMedium className="size-4" /> : <MoonStar className="size-4" />}
           </Button>
           <Button size="sm" onClick={() => navigate("/transfer")}>
-            Fazer transferencia
+            {t("dashboard.actions.transfer")}
           </Button>
         </header>
 

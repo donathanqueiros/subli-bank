@@ -119,5 +119,97 @@
     "confirm": "Confirmar",
     "save": "Salvar",
     "close": "Fechar"
+  },
+  "settings": {
+    "badge": "Configurações",
+    "title": "Aparência da aplicação",
+    "description": "Escolha uma paleta global para toda a experiência. A troca afeta header, sidebar, formulários, listagens e áreas principais do painel.",
+    "currentTheme": "Tema atual:",
+    "active": "Ativo",
+    "themeMode": {
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "language": {
+      "title": "Idioma da interface",
+      "description": "Escolha como a experiência deve aparecer em fluxos já preparados com tradução, como a verificação de identidade.",
+      "current": "Idioma atual:",
+      "selectTitle": "Selecionar idioma",
+      "selectDescription": "A preferência fica salva neste navegador e passa a valer imediatamente.",
+      "label": "Idioma",
+      "ariaLabel": "Selecionar idioma da interface",
+      "optionsTitle": "Opções disponíveis"
+    },
+    "appearance": {
+      "title": "Modo de luminosidade",
+      "description": "Alterne rapidamente entre light e dark mantendo a assinatura de cada paleta também nas superfícies escuras.",
+      "useLight": "Usar light",
+      "useDark": "Usar dark",
+      "lightDescription": "Leve, claro e mais institucional.",
+      "darkDescription": "Mais focado, com tons escuros adaptados para cada paleta."
+    },
+    "palette": {
+      "primary": "Ações, foco e destaque.",
+      "secondary": "Apoio visual e superfícies suaves.",
+      "neutral": "Fundo estrutural e leitura prolongada.",
+      "scope": "Aplicação inteira",
+      "selected": "Selecionado",
+      "usePalette": "Usar paleta"
+    }
+  },
+  "dashboard": {
+    "nav": {
+      "accounts": "Contas",
+      "transactions": "Histórico",
+      "profile": "Perfil",
+      "settings": "Configurações",
+      "admin": "Administração"
+    },
+    "pages": {
+      "accounts": {
+        "title": "Contas",
+        "description": "Consulta, busca e leitura do ecossistema de contas."
+      },
+      "transactions": {
+        "title": "Histórico",
+        "description": "Visão de movimentações com leitura rápida de entradas e saídas."
+      },
+      "transfer": {
+        "title": "Transferências",
+        "description": "Ação primária para enviar valores entre contas."
+      },
+      "profile": {
+        "title": "Perfil",
+        "description": "Sessão, verificação e segurança da conta."
+      },
+      "admin": {
+        "title": "Administração",
+        "description": "Controles sensíveis e operações restritas."
+      },
+      "settings": {
+        "title": "Configurações",
+        "description": "Preferências visuais e ajustes de experiência."
+      },
+      "defaultDescription": "Painel operacional da aplicação."
+    },
+    "roles": {
+      "admin": "Administrador",
+      "operation": "Operação"
+    },
+    "sections": {
+      "navigation": "Navegação",
+      "admin": "Admin"
+    },
+    "language": {
+      "title": "Idioma",
+      "label": "Idioma da interface",
+      "ariaLabel": "Selecionar idioma da interface"
+    },
+    "actions": {
+      "logout": "Sair",
+      "enableLight": "Ativar tema claro",
+      "enableDark": "Ativar tema escuro",
+      "transfer": "Fazer transferência"
+    }
   }
 }

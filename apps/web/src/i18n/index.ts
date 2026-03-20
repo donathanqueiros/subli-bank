@@ -3,6 +3,12 @@ import { initReactI18next } from "react-i18next";
 import ptBR from "./locales/pt-BR.json";
 import en from "./locales/en.json";
 
+function updateDocumentLanguage(language: string) {
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = language;
+  }
+}
+
 const savedLng =
   typeof window !== "undefined"
     ? (localStorage.getItem("i18n-language") ?? "pt-BR")
@@ -22,6 +28,9 @@ i18n.use(initReactI18next).init({
 
 i18n.on("languageChanged", (lng) => {
   localStorage.setItem("i18n-language", lng);
+  updateDocumentLanguage(lng);
 });
+
+updateDocumentLanguage(savedLng);
 
 export default i18n;

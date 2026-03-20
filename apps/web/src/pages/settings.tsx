@@ -1,4 +1,5 @@
 import { Check, MoonStar, Paintbrush, SunMedium } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/use-theme";
@@ -7,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { theme, mode, setTheme, setMode, toggleMode } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-8">
@@ -14,25 +16,24 @@ export default function SettingsPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
             <Badge variant="secondary" className="rounded-full px-3 py-1">
-              Configuracoes
+              {t("settings.badge")}
             </Badge>
             <h1 className="text-3xl font-semibold tracking-[-0.03em] text-foreground">
-              Aparencia da aplicacao
+              {t("settings.title")}
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              Escolha uma paleta global para toda a experiencia. A troca afeta
-              header, sidebar, formularios, listagens e areas principais do painel.
+              {t("settings.description")}
             </p>
           </div>
 
           <div className="rounded-2xl border border-border/70 bg-secondary/60 px-4 py-3 text-sm text-secondary-foreground">
-            Tema atual:{" "}
+            {t("settings.currentTheme")}{" "}
             <span className="font-medium text-foreground">
               {THEME_DEFINITIONS.find((item) => item.value === theme)?.label}
             </span>
             <span className="mx-2 text-muted-foreground">•</span>
             <span className="font-medium text-foreground">
-              {mode === "dark" ? "Dark" : "Light"}
+              {mode === "dark" ? t("settings.themeMode.dark") : t("settings.themeMode.light")}
             </span>
           </div>
         </div>
@@ -42,23 +43,22 @@ export default function SettingsPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold tracking-[-0.02em]">
-              Modo de luminosidade
+              {t("settings.appearance.title")}
             </h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Alterne rapidamente entre light e dark mantendo a assinatura de cada
-              paleta tambem nas superficies escuras.
+              {t("settings.appearance.description")}
             </p>
           </div>
           <Button variant="outline" onClick={toggleMode}>
             {mode === "dark" ? (
               <>
                 <SunMedium className="mr-2 size-4" />
-                Usar light
+                {t("settings.appearance.useLight")}
               </>
             ) : (
               <>
                 <MoonStar className="mr-2 size-4" />
-                Usar dark
+                {t("settings.appearance.useDark")}
               </>
             )}
           </Button>
@@ -68,14 +68,14 @@ export default function SettingsPage() {
           {[
             {
               value: "light" as const,
-              title: "Light",
-              description: "Leve, claro e mais institucional.",
+              title: t("settings.themeMode.light"),
+              description: t("settings.appearance.lightDescription"),
               icon: SunMedium,
             },
             {
               value: "dark" as const,
-              title: "Dark",
-              description: "Mais focado, com tons escuros adaptados para cada paleta.",
+              title: t("settings.themeMode.dark"),
+              description: t("settings.appearance.darkDescription"),
               icon: MoonStar,
             },
           ].map((option) => {
@@ -107,7 +107,7 @@ export default function SettingsPage() {
                       </p>
                     </div>
                   </div>
-                  {isActive ? <Badge>Ativo</Badge> : null}
+                  {isActive ? <Badge>{t("settings.active")}</Badge> : null}
                 </div>
               </button>
             );
@@ -146,7 +146,7 @@ export default function SettingsPage() {
                 {isActive ? (
                   <Badge className="rounded-full px-3 py-1">
                     <Check className="mr-1 size-3.5" />
-                    Ativo
+                    {t("settings.active")}
                   </Badge>
                 ) : null}
               </div>
@@ -160,7 +160,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="text-sm font-medium text-foreground">Primary</p>
                     <p className="text-xs text-muted-foreground">
-                      Acoes, foco e destaque.
+                      {t("settings.palette.primary")}
                     </p>
                   </div>
                 </div>
@@ -172,7 +172,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="text-sm font-medium text-foreground">Secondary</p>
                     <p className="text-xs text-muted-foreground">
-                      Apoio visual e superfices suaves.
+                      {t("settings.palette.secondary")}
                     </p>
                   </div>
                 </div>
@@ -184,7 +184,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="text-sm font-medium text-foreground">Neutral</p>
                     <p className="text-xs text-muted-foreground">
-                      Fundo estrutural e leitura prolongada.
+                      {t("settings.palette.neutral")}
                     </p>
                   </div>
                 </div>
@@ -192,13 +192,13 @@ export default function SettingsPage() {
 
               <div className="mt-5 flex items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                  Aplicacao inteira
+                  {t("settings.palette.scope")}
                 </p>
                 <Button
                   variant={isActive ? "secondary" : "outline"}
                   onClick={() => setTheme(palette.value)}
                 >
-                  {isActive ? "Selecionado" : "Usar paleta"}
+                  {isActive ? t("settings.palette.selected") : t("settings.palette.usePalette")}
                 </Button>
               </div>
             </article>
