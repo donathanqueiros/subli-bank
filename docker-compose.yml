@@ -5,11 +5,10 @@ services:
     ports:
       - "27017:27017"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "echo 'db.adminCommand({ ping: 1 }).ok' | mongosh --quiet mongodb://mongo1-q8w00csck48swgwg4wks0woc:27017/admin | grep 1",
-        ]
+      test: >
+        echo 'db.runCommand("ping").ok' | mongosh
+        mongodb://localhost:27017/admin
+        --quiet
       interval: 5s
       timeout: 10s
       retries: 30
@@ -25,12 +24,12 @@ services:
         condition: service_healthy
     ports:
       - "27018:27017"
+    
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "echo 'db.adminCommand({ ping: 1 }).ok' | mongosh --quiet mongodb://mongo2-q8w00csck48swgwg4wks0woc:27017/admin | grep 1",
-        ]
+      test: >
+        echo 'db.runCommand("ping").ok' | mongosh
+        mongodb://localhost:27017/admin
+        --quiet
       interval: 5s
       timeout: 10s
       retries: 30
