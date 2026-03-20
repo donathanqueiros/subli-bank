@@ -74,7 +74,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (!isBootstrapping && isAuthenticated) {
-      navigate("/accounts");
+      navigate("/home");
     }
   }, [isAuthenticated, isBootstrapping, navigate]);
 
@@ -103,7 +103,7 @@ export default function AuthPage() {
         kycStatus: payload.user.role === "ADMIN" ? "APPROVED" : "PENDING_SUBMISSION",
       });
 
-      navigate("/accounts");
+      navigate("/home");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {

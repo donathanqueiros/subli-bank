@@ -4,6 +4,7 @@ import { accountsQueries } from "../modules/accounts/AccountQuery";
 import { transactionsQueries } from "../modules/transactions/queries";
 import { depositsQueries } from "../modules/deposits/DepositQuery";
 import { kycQueries } from "../modules/kyc/KycQuery";
+import { phoneCreditQueries } from "../modules/phoneCredits/queries";
 import { usersQueries } from "../modules/users/queries";
 
 /**
@@ -25,6 +26,7 @@ export const QueryType = new GraphQLObjectType({
     ...usersQueries,
     ...transactionsQueries,
     ...depositsQueries,
+    ...phoneCreditQueries,
     ...kycQueries,
   },
 });

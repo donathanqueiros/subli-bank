@@ -161,6 +161,8 @@
   },
   "dashboard": {
     "nav": {
+      "home": "Home",
+      "deposit": "Deposito Pix",
       "accounts": "Contas",
       "transactions": "Histórico",
       "profile": "Perfil",
@@ -168,9 +170,17 @@
       "admin": "Administração"
     },
     "pages": {
+      "home": {
+        "title": "Home",
+        "description": "Atalhos operacionais e recarga com leitura imediata do saldo."
+      },
       "accounts": {
         "title": "Contas",
         "description": "Consulta, busca e leitura do ecossistema de contas."
+      },
+      "deposit": {
+        "title": "Deposito Pix",
+        "description": "Geracao de QR Code Pix e acompanhamento dos depositos."
       },
       "transactions": {
         "title": "Histórico",

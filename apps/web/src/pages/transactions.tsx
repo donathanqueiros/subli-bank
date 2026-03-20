@@ -3,17 +3,22 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Loader2,
+  Smartphone,
   TrendingUp,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ACCOUNT_TRANSFER_RECEIVED_EVENT } from "@/lib/account-notification-events";
+import {
+  ACCOUNT_PHONE_CREDIT_PURCHASED_EVENT,
+  ACCOUNT_TRANSFER_RECEIVED_EVENT,
+} from "@/lib/account-notification-events";
 import { cn } from "@/lib/utils";
 import { formatBalance, formatDateTime } from "@/lib/formatters";
 import { graphqlRequest } from "@/lib/graphqlClient";
 import { useAuth } from "@/lib/use-auth";
 
 const PAGE_SIZE = 10;
+const PHONE_CREDIT_PAGE_SIZE = 5;
 
 const TRANSACTIONS_QUERY = `
   query TransactionsList($page: Int!, $limit: Int!, $accountId: ID) {
@@ -35,6 +40,19 @@ const TRANSACTIONS_QUERY = `
   }
 `;
 
+const PHONE_CREDITS_QUERY = `
+  query PhoneCredits($page: Int!, $limit: Int!) {
+    myPhoneCreditPurchasesCount
+    myPhoneCreditPurchases(page: $page, limit: $limit) {
+      id
+      phone
+      amount
+      status
+      createdAt
+    }
+  }
+`;
+
 type Transaction = {
   id: string;
   amount: number;
@@ -44,11 +62,21 @@ type Transaction = {
   toAccount: { id: string; holderName: string };
 };
 
+type PhoneCreditPurchase = {
+  id: string;
+  phone: string;
+  amount: number;
+  status: "RECORDED";
+  createdAt: string;
+};
+
 export default function TransactionsPage() {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [phoneCredits, setPhoneCredits] = useState<PhoneCreditPurchase[]>([]);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [phoneCreditsTotalCount, setPhoneCreditsTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,16 +84,27 @@ export default function TransactionsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await graphqlRequest<{
-        transactions: Transaction[];
-        transactionsCount: number;
-      }>(TRANSACTIONS_QUERY, {
-        page,
-        limit: PAGE_SIZE,
-        accountId: user?.accountId,
-      });
-      setTransactions(data.transactions ?? []);
-      setTotalCount(data.transactionsCount ?? 0);
+      const [transactionsData, phoneCreditsData] = await Promise.all([
+        graphqlRequest<{
+          transactions: Transaction[];
+          transactionsCount: number;
+        }>(TRANSACTIONS_QUERY, {
+          page,
+          limit: PAGE_SIZE,
+          accountId: user?.accountId,
+        }),
+        graphqlRequest<{
+          myPhoneCreditPurchases: PhoneCreditPurchase[];
+          myPhoneCreditPurchasesCount: number;
+        }>(PHONE_CREDITS_QUERY, {
+          page: 1,
+          limit: PHONE_CREDIT_PAGE_SIZE,
+        }),
+      ]);
+      setTransactions(transactionsData.transactions ?? []);
+      setTotalCount(transactionsData.transactionsCount ?? 0);
+      setPhoneCredits(phoneCreditsData.myPhoneCreditPurchases ?? []);
+      setPhoneCreditsTotalCount(phoneCreditsData.myPhoneCreditPurchasesCount ?? 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {
@@ -82,14 +121,16 @@ export default function TransactionsPage() {
       return;
     }
 
-    const handleTransferReceived = () => {
+    const handleActivityUpdate = () => {
       void loadTransactions();
     };
 
-    window.addEventListener(ACCOUNT_TRANSFER_RECEIVED_EVENT, handleTransferReceived);
+    window.addEventListener(ACCOUNT_TRANSFER_RECEIVED_EVENT, handleActivityUpdate);
+    window.addEventListener(ACCOUNT_PHONE_CREDIT_PURCHASED_EVENT, handleActivityUpdate);
 
     return () => {
-      window.removeEventListener(ACCOUNT_TRANSFER_RECEIVED_EVENT, handleTransferReceived);
+      window.removeEventListener(ACCOUNT_TRANSFER_RECEIVED_EVENT, handleActivityUpdate);
+      window.removeEventListener(ACCOUNT_PHONE_CREDIT_PURCHASED_EVENT, handleActivityUpdate);
     };
   }, [loadTransactions, user?.accountId]);
 
@@ -105,6 +146,15 @@ export default function TransactionsPage() {
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)),
     [totalCount],
+  );
+
+  const sortedPhoneCredits = useMemo(
+    () =>
+      [...phoneCredits].sort(
+        (a, b) => Number(b.createdAt) - Number(a.createdAt) ||
+          Date.parse(b.createdAt) - Date.parse(a.createdAt),
+      ),
+    [phoneCredits],
   );
 
   return (
@@ -249,6 +299,74 @@ export default function TransactionsPage() {
             </Button>
           </div>
         </div>
+      </section>
+
+      <section className="space-y-4 rounded-[24px] border border-border/70 bg-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold">Recargas registradas</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Saidas de saldo ligadas a recarga simulada de celular, sem misturar com a paginacao das transferencias.
+            </p>
+          </div>
+          <div className="rounded-full border border-border/70 bg-background px-3 py-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            {phoneCreditsTotalCount} registrada(s)
+          </div>
+        </div>
+
+        {!loading && !error && sortedPhoneCredits.length === 0 ? (
+          <div className="rounded-[20px] border border-dashed border-border bg-background/60 px-5 py-10 text-center">
+            <p className="text-sm font-medium text-foreground">
+              Nenhuma recarga registrada no momento.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              As proximas recargas feitas na Home aparecerao aqui.
+            </p>
+          </div>
+        ) : null}
+
+        {!loading && !error && sortedPhoneCredits.length > 0 ? (
+          <div className="space-y-3">
+            {sortedPhoneCredits.map((phoneCredit) => (
+              <article
+                key={phoneCredit.id}
+                className="rounded-[20px] border border-border/70 bg-background/80 px-4 py-4 transition-all duration-200 hover:border-primary/15 hover:shadow-[0_18px_38px_-30px_color-mix(in_oklab,var(--foreground)_16%,transparent)]"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex size-11 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+                      <Smartphone className="size-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground">
+                          Recarga registrada
+                        </p>
+                        <Badge variant="destructive">Saida</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Telefone: {phoneCredit.phone}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Status: {phoneCredit.status}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-lg font-semibold tracking-[-0.03em] text-destructive">
+                      -{formatBalance(phoneCredit.amount)}
+                    </p>
+                    <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-secondary/80 px-3 py-1 text-xs text-secondary-foreground">
+                      <TrendingUp className="size-3.5" />
+                      {formatDateTime(phoneCredit.createdAt)}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
     </div>
   );

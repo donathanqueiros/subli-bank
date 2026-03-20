@@ -161,6 +161,8 @@
   },
   "dashboard": {
     "nav": {
+      "home": "Home",
+      "deposit": "Pix deposit",
       "accounts": "Accounts",
       "transactions": "History",
       "profile": "Profile",
@@ -168,9 +170,17 @@
       "admin": "Administration"
     },
     "pages": {
+      "home": {
+        "title": "Home",
+        "description": "Operational shortcuts and phone credit with immediate balance visibility."
+      },
       "accounts": {
         "title": "Accounts",
         "description": "Browse, search, and read the account ecosystem."
+      },
+      "deposit": {
+        "title": "Pix deposit",
+        "description": "Generate Pix QR codes and track your deposit requests."
       },
       "transactions": {
         "title": "History",

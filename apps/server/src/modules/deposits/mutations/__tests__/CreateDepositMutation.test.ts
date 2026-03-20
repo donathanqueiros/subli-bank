@@ -165,7 +165,7 @@ describe("CreateDeposit mutation", () => {
     expect(result.errors).toBeUndefined();
     expect(chargeCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        value: 120,
+        value: 12000,
         comment: "Top up",
       }),
     );

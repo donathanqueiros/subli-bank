@@ -2,8 +2,10 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import {
   ArrowRightLeft,
   Globe2,
+  House,
   Landmark,
   MoonStar,
+  QrCode,
   Settings,
   ShieldCheck,
   SunMedium,
@@ -56,6 +58,8 @@ export function DashboardLayout() {
     (option) => option.value === (i18n.resolvedLanguage ?? i18n.language),
   );
   const navItems = [
+    { path: "/home", label: t("dashboard.nav.home"), icon: House },
+    { path: "/deposit", label: t("dashboard.nav.deposit"), icon: QrCode },
     { path: "/accounts", label: t("dashboard.nav.accounts"), icon: Landmark },
     { path: "/transactions", label: t("dashboard.nav.transactions"), icon: ArrowRightLeft },
     { path: "/profile", label: t("dashboard.nav.profile"), icon: User },
@@ -63,9 +67,17 @@ export function DashboardLayout() {
   ];
   const adminItems = [{ path: "/admin", label: t("dashboard.nav.admin"), icon: ShieldCheck }];
   const pageTitles: Record<string, { title: string; description: string }> = {
+    "/home": {
+      title: t("dashboard.pages.home.title"),
+      description: t("dashboard.pages.home.description"),
+    },
     "/accounts": {
       title: t("dashboard.pages.accounts.title"),
       description: t("dashboard.pages.accounts.description"),
+    },
+    "/deposit": {
+      title: t("dashboard.pages.deposit.title"),
+      description: t("dashboard.pages.deposit.description"),
     },
     "/transactions": {
       title: t("dashboard.pages.transactions.title"),

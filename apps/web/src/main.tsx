@@ -7,6 +7,8 @@ import App from "./App.tsx";
 import { Providers } from "./components/providers.tsx";
 import AuthPage from "./pages/auth.tsx";
 import AccountsListPage from "./pages/accounts-list.tsx";
+import DepositPage from "./pages/deposit.tsx";
+import HomePage from "./pages/home.tsx";
 import TransactionsPage from "./pages/transactions.tsx";
 import TransferPage from "./pages/transfer.tsx";
 import ProfilePage from "./pages/profile.tsx";
@@ -30,7 +32,9 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/" element={<App />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route element={<ProtectedDashboardLayout />}>
+              <Route path="/home" element={<HomePage />} />
               <Route path="/accounts" element={<AccountsListPage />} />
+              <Route path="/deposit" element={<DepositPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/transfer" element={<TransferPage />} />
               <Route path="/profile" element={<ProfilePage />} />

@@ -68,7 +68,7 @@ export default function App() {
               <div className="flex flex-wrap gap-3">
                 {isAuthenticated ? (
                   <>
-                    <Button size="lg" onClick={() => navigate("/accounts")}>
+                    <Button size="lg" onClick={() => navigate("/home")}>
                       Abrir painel
                       <ArrowRight className="ml-2 size-4" />
                     </Button>

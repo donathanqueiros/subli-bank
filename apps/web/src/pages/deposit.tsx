@@ -1,0 +1,377 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Clock3, Copy, QrCode, Wallet } from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ACCOUNT_DEPOSIT_CONFIRMED_EVENT } from "@/lib/account-notification-events";
+import { formatBalance, formatDateTime } from "@/lib/formatters";
+import { graphqlRequest } from "@/lib/graphqlClient";
+import { useAuth } from "@/lib/use-auth";
+
+const ACCOUNT_QUERY = `
+  query DepositAccount($id: ID!) {
+    account(id: $id) {
+      id
+      holderName
+      balance
+    }
+  }
+`;
+
+const DEPOSITS_QUERY = `
+  query Deposits($page: Int!, $limit: Int!, $status: DepositRequestStatus) {
+    myDepositsCount(status: $status)
+    myDeposits(page: $page, limit: $limit, status: $status) {
+      id
+      accountId
+      correlationID
+      requestedAmount
+      paidAmount
+      status
+      brCode
+      qrCodeImage
+      expiresDate
+      createdAt
+      completedAt
+      expiredAt
+    }
+  }
+`;
+
+const CREATE_DEPOSIT_MUTATION = `
+  mutation CreateDeposit($amount: Float!, $comment: String) {
+    CreateDeposit(amount: $amount, comment: $comment) {
+      id
+      accountId
+      correlationID
+      requestedAmount
+      paidAmount
+      status
+      brCode
+      qrCodeImage
+      expiresDate
+      createdAt
+      completedAt
+      expiredAt
+    }
+  }
+`;
+
+type Account = {
+  id: string;
+  holderName: string;
+  balance: number | null;
+};
+
+type DepositStatus = "PENDING" | "COMPLETED" | "EXPIRED";
+
+type Deposit = {
+  id: string;
+  accountId: string;
+  correlationID: string;
+  requestedAmount: number;
+  paidAmount?: number | null;
+  status: DepositStatus;
+  brCode?: string | null;
+  qrCodeImage?: string | null;
+  expiresDate?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+  expiredAt?: string | null;
+};
+
+function getDepositStatusLabel(status: DepositStatus) {
+  if (status === "COMPLETED") return "Confirmado";
+  if (status === "EXPIRED") return "Expirado";
+  return "Aguardando pagamento";
+}
+
+export default function DepositPage() {
+  const { user } = useAuth();
+  const [account, setAccount] = useState<Account | null>(null);
+  const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [depositsTotalCount, setDepositsTotalCount] = useState(0);
+  const [depositAmount, setDepositAmount] = useState("100");
+  const [loading, setLoading] = useState(true);
+  const [depositLoading, setDepositLoading] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const loadDepositData = useCallback(async () => {
+    if (!user?.accountId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const [accountData, depositsData] = await Promise.all([
+        graphqlRequest<{ account: Account | null }>(ACCOUNT_QUERY, { id: user.accountId }),
+        graphqlRequest<{ myDeposits: Deposit[]; myDepositsCount: number }>(DEPOSITS_QUERY, {
+          page: 1,
+          limit: 5,
+          status: undefined,
+        }),
+      ]);
+
+      setAccount(accountData.account ?? null);
+      setDeposits(depositsData.myDeposits ?? []);
+      setDepositsTotalCount(depositsData.myDepositsCount ?? 0);
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Falha ao carregar depositos");
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.accountId]);
+
+  useEffect(() => {
+    void loadDepositData();
+  }, [loadDepositData]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleDepositConfirmed = () => {
+      void loadDepositData();
+    };
+
+    window.addEventListener(ACCOUNT_DEPOSIT_CONFIRMED_EVENT, handleDepositConfirmed);
+
+    return () => {
+      window.removeEventListener(ACCOUNT_DEPOSIT_CONFIRMED_EVENT, handleDepositConfirmed);
+    };
+  }, [loadDepositData]);
+
+  const latestDeposit = useMemo(() => deposits[0] ?? null, [deposits]);
+
+  async function handleCreateDeposit() {
+    const amount = Number(depositAmount);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setFeedback("Informe um valor de deposito valido.");
+      return;
+    }
+
+    setDepositLoading(true);
+    setFeedback(null);
+
+    try {
+      await graphqlRequest(CREATE_DEPOSIT_MUTATION, { amount });
+      setFeedback("Deposito Pix gerado com sucesso.");
+      await loadDepositData();
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Falha ao gerar deposito");
+    } finally {
+      setDepositLoading(false);
+    }
+  }
+
+  async function handleCopyBrCode(brCode: string) {
+    try {
+      await navigator.clipboard.writeText(brCode);
+      toast.success("Codigo Pix copiado.");
+    } catch {
+      toast.error("Nao foi possivel copiar o codigo Pix.");
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[24px] border border-border/70 bg-card px-6 py-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <Badge variant="secondary" className="rounded-full px-3 py-1">
+              Deposito dedicado
+            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1>Deposito Pix</h1>
+              <Badge variant="outline">Pix apenas</Badge>
+            </div>
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+              Gere uma cobranca Pix, copie o BR Code e acompanhe as confirmacoes do seu deposito em uma tela exclusiva.
+            </p>
+          </div>
+          <div className="grid min-w-56 gap-3 rounded-[20px] border border-border/70 bg-background/80 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+              Saldo da conta
+            </p>
+            <p className="text-2xl font-semibold tracking-[-0.04em]">
+              {formatBalance(account?.balance ?? 0)}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {account?.holderName ?? "Conta atual"}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <article className="rounded-[24px] border border-border/70 bg-card p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Wallet className="size-5" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-foreground">Gerar novo deposito</h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                No momento, a entrada de saldo acontece apenas por Pix. Informe o valor para gerar um novo QR Code.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4">
+            <label className="space-y-2 text-sm font-medium">
+              <span>Valor do deposito</span>
+              <Input
+                type="number"
+                min={0.01}
+                step="0.01"
+                value={depositAmount}
+                onChange={(event) => setDepositAmount(event.target.value)}
+              />
+            </label>
+
+            {feedback ? (
+              <p className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-sm text-foreground">
+                {feedback}
+              </p>
+            ) : null}
+
+            <div className="flex justify-end">
+              <Button onClick={() => void handleCreateDeposit()} disabled={depositLoading || loading}>
+                {depositLoading ? "Gerando..." : "Gerar deposito Pix"}
+              </Button>
+            </div>
+          </div>
+        </article>
+
+        <article className="rounded-[24px] border border-border/70 bg-card p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
+              <QrCode className="size-5" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-foreground">Ultimo deposito gerado</h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                O QR Code mais recente fica em destaque para acelerar copia, leitura e acompanhamento.
+              </p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="mt-6 rounded-[20px] border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+              Carregando dados de deposito...
+            </div>
+          ) : latestDeposit ? (
+            <div className="mt-6 grid gap-4 rounded-[22px] border border-border/70 bg-background/80 p-4 md:grid-cols-2">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{getDepositStatusLabel(latestDeposit.status)}</Badge>
+                    <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock3 className="size-3.5" />
+                      {formatDateTime(latestDeposit.createdAt)}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm text-foreground">
+                    Valor solicitado: <strong>{formatBalance(latestDeposit.requestedAmount)}</strong>
+                  </p>
+                  {latestDeposit.paidAmount ? (
+                    <p className="mt-2 text-sm text-emerald-700">
+                      Valor confirmado: <strong>{formatBalance(latestDeposit.paidAmount)}</strong>
+                    </p>
+                  ) : null}
+                </div>
+
+                {latestDeposit.brCode ? (
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                      BR Code
+                    </p>
+                    <textarea
+                      className="h-28 w-full rounded-xl border border-border/70 bg-card px-3 py-2 text-xs text-foreground"
+                      value={latestDeposit.brCode}
+                      readOnly
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleCopyBrCode(latestDeposit.brCode ?? "")}
+                    >
+                      <Copy className="size-4" />
+                      Copiar codigo Pix
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex items-center justify-center rounded-[20px] border border-dashed border-border bg-card/80 p-4">
+                {latestDeposit.qrCodeImage ? (
+                  <img
+                    src={latestDeposit.qrCodeImage}
+                    alt="QR Code do deposito"
+                    className="h-52 w-52 rounded-xl object-contain"
+                  />
+                ) : (
+                  <p className="text-center text-sm text-muted-foreground">
+                    QR Code indisponivel para este deposito.
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-[20px] border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+              Nenhum deposito gerado ainda.
+            </div>
+          )}
+        </article>
+      </section>
+
+      <section className="rounded-[24px] border border-border/70 bg-card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Historico recente</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {depositsTotalCount} deposito(s) registrado(s) na sua conta.
+            </p>
+          </div>
+        </div>
+
+        {deposits.length > 0 ? (
+          <ul className="mt-6 space-y-3">
+            {deposits.map((deposit) => (
+              <li
+                key={deposit.id}
+                className="rounded-[20px] border border-border/70 bg-background/80 px-4 py-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-foreground">
+                        {formatBalance(deposit.requestedAmount)}
+                      </p>
+                      <Badge variant="outline">{getDepositStatusLabel(deposit.status)}</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      CorrelationID: {deposit.correlationID}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDateTime(deposit.createdAt)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-6 rounded-[20px] border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+            Ainda nao existem depositos para exibir.
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}
