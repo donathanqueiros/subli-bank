@@ -1,4 +1,4 @@
-import { Check, Paintbrush } from "lucide-react";
+import { Check, MoonStar, Paintbrush, SunMedium } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/use-theme";
@@ -6,7 +6,7 @@ import { THEME_DEFINITIONS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
+  const { theme, mode, setTheme, setMode, toggleMode } = useTheme();
 
   return (
     <div className="space-y-8">
@@ -30,7 +30,88 @@ export default function SettingsPage() {
             <span className="font-medium text-foreground">
               {THEME_DEFINITIONS.find((item) => item.value === theme)?.label}
             </span>
+            <span className="mx-2 text-muted-foreground">•</span>
+            <span className="font-medium text-foreground">
+              {mode === "dark" ? "Dark" : "Light"}
+            </span>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-[20px] border border-border/70 bg-card p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold tracking-[-0.02em]">
+              Modo de luminosidade
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Alterne rapidamente entre light e dark mantendo a assinatura de cada
+              paleta tambem nas superficies escuras.
+            </p>
+          </div>
+          <Button variant="outline" onClick={toggleMode}>
+            {mode === "dark" ? (
+              <>
+                <SunMedium className="mr-2 size-4" />
+                Usar light
+              </>
+            ) : (
+              <>
+                <MoonStar className="mr-2 size-4" />
+                Usar dark
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          {[
+            {
+              value: "light" as const,
+              title: "Light",
+              description: "Leve, claro e mais institucional.",
+              icon: SunMedium,
+            },
+            {
+              value: "dark" as const,
+              title: "Dark",
+              description: "Mais focado, com tons escuros adaptados para cada paleta.",
+              icon: MoonStar,
+            },
+          ].map((option) => {
+            const isActive = option.value === mode;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setMode(option.value)}
+                className={cn(
+                  "rounded-[20px] border p-4 text-left transition-all duration-200",
+                  isActive
+                    ? "border-primary/35 bg-secondary/45 shadow-[0_16px_36px_-30px_color-mix(in_oklab,var(--primary)_35%,transparent)]"
+                    : "border-border/70 bg-background/70 hover:border-primary/18 hover:bg-background",
+                )}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="inline-flex size-10 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
+                      <option.icon className="size-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        {option.title}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        {option.description}
+                      </p>
+                    </div>
+                  </div>
+                  {isActive ? <Badge>Ativo</Badge> : null}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </section>
 

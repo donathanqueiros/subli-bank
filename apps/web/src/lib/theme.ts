@@ -1,8 +1,11 @@
 export const THEME_STORAGE_KEY = "woovi-bank-theme";
+export const COLOR_MODE_STORAGE_KEY = "woovi-bank-color-mode";
 
 export const THEMES = ["slate-blue", "graphite-amber", "stone-emerald"] as const;
+export const COLOR_MODES = ["light", "dark"] as const;
 
 export type AppTheme = (typeof THEMES)[number];
+export type ColorMode = (typeof COLOR_MODES)[number];
 
 export type ThemeDefinition = {
   value: AppTheme;
@@ -41,9 +44,14 @@ export const THEME_DEFINITIONS: ThemeDefinition[] = [
 ];
 
 export const DEFAULT_THEME: AppTheme = "slate-blue";
+export const DEFAULT_MODE: ColorMode = "light";
 
 export function isAppTheme(value: string | null | undefined): value is AppTheme {
   return typeof value === "string" && THEMES.includes(value as AppTheme);
+}
+
+export function isColorMode(value: string | null | undefined): value is ColorMode {
+  return typeof value === "string" && COLOR_MODES.includes(value as ColorMode);
 }
 
 export function getStoredTheme() {
@@ -59,12 +67,34 @@ export function getStoredTheme() {
   }
 }
 
+export function getStoredColorMode() {
+  if (typeof window === "undefined") {
+    return DEFAULT_MODE;
+  }
+
+  try {
+    const stored = window.localStorage.getItem(COLOR_MODE_STORAGE_KEY);
+    return isColorMode(stored) ? stored : DEFAULT_MODE;
+  } catch {
+    return DEFAULT_MODE;
+  }
+}
+
 export function applyTheme(theme: AppTheme) {
   if (typeof document === "undefined") {
     return;
   }
 
   document.documentElement.dataset.theme = theme;
+}
+
+export function applyColorMode(mode: ColorMode) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.documentElement.dataset.mode = mode;
+  document.documentElement.style.colorScheme = mode;
 }
 
 export function persistTheme(theme: AppTheme) {
@@ -79,8 +109,22 @@ export function persistTheme(theme: AppTheme) {
   }
 }
 
+export function persistColorMode(mode: ColorMode) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(COLOR_MODE_STORAGE_KEY, mode);
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export function initializeTheme() {
   const theme = getStoredTheme();
+  const mode = getStoredColorMode();
   applyTheme(theme);
-  return theme;
+  applyColorMode(mode);
+  return { theme, mode };
 }

@@ -11,6 +11,14 @@ const items: SidebarItem[] = [
   { id: "settings", label: "Configuracoes", icon: Settings },
 ]
 
+const noopSelect = (id: string) => {
+  void id
+}
+
+const noopMobileChange = (open: boolean) => {
+  void open
+}
+
 const meta = {
   title: "Components/DashboardSidebar",
   component: DashboardSidebar,
@@ -22,8 +30,8 @@ const meta = {
     items,
     activeItemId: "home",
     mobileOpen: false,
-    onSelect: (_id: string) => {},
-    onMobileOpenChange: (_open: boolean) => {},
+    onSelect: noopSelect,
+    onMobileOpenChange: noopMobileChange,
   },
 } satisfies Meta<typeof DashboardSidebar>
 

@@ -2,8 +2,10 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import {
   ArrowRightLeft,
   Landmark,
+  MoonStar,
   Settings,
   ShieldCheck,
+  SunMedium,
   User,
 } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
@@ -27,6 +29,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { graphqlRequest } from "@/lib/graphqlClient";
+import { useTheme } from "@/lib/use-theme";
 
 const LOGOUT_MUTATION = `
   mutation Logout {
@@ -94,6 +97,7 @@ const PAGE_TITLES: Record<string, { title: string; description: string }> = {
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { mode, toggleMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const pageMeta = PAGE_TITLES[location.pathname] ?? {
@@ -202,7 +206,16 @@ export function DashboardLayout() {
               {pageMeta.description}
             </p>
           </div>
-          <Button size="sm" className="ml-auto" onClick={() => navigate("/transfer")}>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            className="ml-auto"
+            aria-label={mode === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
+            onClick={toggleMode}
+          >
+            {mode === "dark" ? <SunMedium className="size-4" /> : <MoonStar className="size-4" />}
+          </Button>
+          <Button size="sm" onClick={() => navigate("/transfer")}>
             Fazer transferencia
           </Button>
         </header>
