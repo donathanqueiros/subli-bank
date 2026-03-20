@@ -58,6 +58,7 @@ services:
     ports:
       - "4000:4000"
     environment:
+      - PORT=${PORT:-4000}
       - MONGO_URI=${MONGO_URI:?}
       - SESSION_SECRET=${SESSION_SECRET:?}
       - SESSION_COOKIE_NAME=${SESSION_COOKIE_NAME:?}
