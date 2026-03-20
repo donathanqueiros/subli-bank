@@ -24,6 +24,8 @@ ENV VITE_GRAPHQL_WS_URL=$VITE_GRAPHQL_WS_URL
 
 COPY apps/web apps/web
 
+RUN pnpm --dir apps/web relay
+
 RUN pnpm --dir apps/web build
 
 FROM deps AS runtime
