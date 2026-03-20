@@ -22,11 +22,13 @@ export function IdentityStep({ control, errors }: IdentityStepProps) {
 
   // Passport does not need back photo
   const needsBackImage = idType === "RG" || idType === "DRIVERS_LICENSE";
-  // RG and Driver's License use CPF as the number
+  // Keep the label aligned with selected document type.
   const idNumberLabel =
-    idType === "RG" || idType === "DRIVERS_LICENSE"
-      ? "CPF"
-      : t("kyc.identity.idNumber");
+    idType === "RG"
+      ? t("kyc.identity.rgOrCpf")
+      : idType === "DRIVERS_LICENSE"
+        ? t("kyc.identity.cpf")
+        : t("kyc.identity.idNumber");
 
   return (
     <div className="flex flex-col gap-6">
