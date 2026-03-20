@@ -1,7 +1,6 @@
 services:
   mongo1:
     image: mongo:7
-    container_name: mongo1
     command: ["mongod", "--replSet", "myReplicaSet", "--bind_ip_all", "--port", "27017"]
     ports:
       - "27017:27017"
@@ -20,7 +19,6 @@ services:
 
   mongo2:
     image: mongo:7
-    container_name: mongo2
     command: ["mongod", "--replSet", "myReplicaSet", "--bind_ip_all", "--port", "27017"]
     depends_on:
       mongo1:
